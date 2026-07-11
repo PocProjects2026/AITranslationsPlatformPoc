@@ -1,0 +1,27 @@
+<main class="workspace">
+  <section class="workspace__intro">
+    <p class="workspace__eyebrow" i18n="Product label|@@frontend.product">Translation platform</p>
+    <h1 i18n="Workspace heading|@@frontend.heading">Translation workspace</h1>
+    <p i18n="Workspace summary|@@frontend.summary">
+      Review localized content before publishing it to services.
+    </p>
+  </section>
+
+  <section class="workspace__panel" aria-labelledby="language-heading">
+    <h2 id="language-heading" i18n="Language panel heading|@@frontend.languageHeading">
+      Display language
+    </h2>
+    <label for="locale" i18n="Language selector label|@@frontend.languageLabel">Language</label>
+    <select id="locale" [value]="selectedLocale()" (change)="selectLocale($event)">
+      <option value="en">English</option>
+      <option value="fr">Francais</option>
+      <option value="de">Deutsch</option>
+    </select>
+    <p i18n="Pending translations message|@@frontend.pending">
+      There are {{ pendingCount() }} translations to review.
+    </p>
+    <button type="button" (click)="addPendingTranslation()" i18n="Add example item action|@@frontend.add">
+      Add example item
+    </button>
+  </section>
+</main>
