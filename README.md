@@ -6,6 +6,7 @@ Single repository for the first implementation of the AI translation platform.
 
 - `FrontendApp/`: Angular application using XLIFF source and localized files.
 - `TranslationService/`: Python API for translating, validating, ranking, and packaging artifacts.
+- `Recommendations/`: Shared deployment and translation-provider recommendations.
 
 ReportService and AssetManagementService will consume the translation artifacts but are
 not created in this first foundation. Their integration contracts will be added with
