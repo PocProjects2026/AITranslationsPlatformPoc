@@ -1,0 +1,116 @@
+{
+  "site": {
+    "name": "Urban Threads",
+    "tagline": "Streetwear that speaks for itself"
+  },
+  "nav": {
+    "home": "Home",
+    "shop": "Shop",
+    "collections": "Collections",
+    "sale": "Sale",
+    "about": "About us",
+    "contact": "Contact",
+    "cart": "Cart",
+    "search_placeholder": "Search for products..."
+  },
+  "hero": {
+    "title": "New season, new drops",
+    "subtitle": "Discover our latest collection before it sells out",
+    "cta": "Shop the collection"
+  },
+  "product": {
+    "add_to_cart": "Add to cart",
+    "add_to_wishlist": "Add to wishlist",
+    "size_guide": "Size guide",
+    "out_of_stock": "Out of stock",
+    "in_stock": "In stock",
+    "low_stock": "Only {count} left in stock",
+    "select_size": "Select a size",
+    "select_color": "Select a color",
+    "reviews": "{count} reviews",
+    "no_reviews": "No reviews yet",
+    "price_range": "From {minPrice} to {maxPrice}",
+    "description_title": "Product description",
+    "shipping_info": "Free shipping on orders over {threshold}",
+    "return_policy": "Free returns within 30 days"
+  },
+  "cart": {
+    "title": "Your cart",
+    "empty": "Your cart is empty",
+    "empty_subtitle": "Looks like you haven't added anything yet",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "tax": "Tax",
+    "total": "Total",
+    "checkout": "Proceed to checkout",
+    "continue_shopping": "Continue shopping",
+    "remove_item": "Remove",
+    "quantity": "Quantity",
+    "item_added": "{itemName} was added to your cart",
+    "item_removed": "{itemName} was removed from your cart"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "shipping_address": "Shipping address",
+    "billing_address": "Billing address",
+    "same_as_shipping": "Same as shipping address",
+    "payment_method": "Payment method",
+    "order_summary": "Order summary",
+    "place_order": "Place order",
+    "full_name": "Full name",
+    "email": "Email address",
+    "phone": "Phone number",
+    "address_line1": "Address line 1",
+    "address_line2": "Address line 2 (optional)",
+    "city": "City",
+    "postal_code": "Postal code",
+    "country": "Country"
+  },
+  "account": {
+    "title": "My account",
+    "orders": "Order history",
+    "order_number": "Order #{orderNumber}",
+    "order_placed_on": "Placed on {date}",
+    "order_status_pending": "Pending",
+    "order_status_shipped": "Shipped",
+    "order_status_delivered": "Delivered",
+    "order_status_cancelled": "Cancelled",
+    "edit_profile": "Edit profile",
+    "change_password": "Change password",
+    "saved_addresses": "Saved addresses",
+    "logout": "Log out"
+  },
+  "auth": {
+    "login_title": "Welcome back",
+    "signup_title": "Create an account",
+    "email_label": "Email",
+    "password_label": "Password",
+    "confirm_password_label": "Confirm password",
+    "forgot_password": "Forgot your password?",
+    "no_account": "Don't have an account?",
+    "have_account": "Already have an account?",
+    "login_button": "Log in",
+    "signup_button": "Sign up",
+    "login_success": "Welcome back, {firstName}!",
+    "invalid_credentials": "Incorrect email or password"
+  },
+  "errors": [
+    "Something went wrong. Please try again.",
+    "This field is required",
+    "Please enter a valid email address",
+    "Password must be at least {minLength} characters",
+    "This product is no longer available",
+    "Your session has expired, please log in again"
+  ],
+  "footer": {
+    "newsletter_title": "Stay in the loop",
+    "newsletter_subtitle": "Sign up for exclusive drops and offers",
+    "newsletter_placeholder": "Enter your email",
+    "newsletter_button": "Subscribe",
+    "copyright": "© {year} Urban Threads. All rights reserved.",
+    "privacy_policy": "Privacy policy",
+    "terms_of_service": "Terms of service"
+  },
+  "product_count": 128,
+  "free_shipping_threshold": 50
+}
