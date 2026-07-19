@@ -1,27 +1,197 @@
-<main class="workspace">
-  <section class="workspace__intro">
-    <p class="workspace__eyebrow" i18n="Product label|@@frontend.product">Translation platform</p>
-    <h1 i18n="Workspace heading|@@frontend.heading">Translation workspace</h1>
-    <p i18n="Workspace summary|@@frontend.summary">
-      Review localized content before publishing it to services.
-    </p>
-  </section>
+<div class="app-shell">
+  <header class="topbar">
+    <a
+      class="brand"
+      href="/"
+      aria-label="Translation Platform home"
+      i18n-aria-label="Home link accessibility label@@appHomeLabel"
+    >
+      <span class="brand__mark" aria-hidden="true">T</span>
 
-  <section class="workspace__panel" aria-labelledby="language-heading">
-    <h2 id="language-heading" i18n="Language panel heading|@@frontend.languageHeading">
-      Display language
-    </h2>
-    <label for="locale" i18n="Language selector label|@@frontend.languageLabel">Language</label>
-    <select id="locale" [value]="selectedLocale()" (change)="selectLocale($event)">
-      <option value="en">English</option>
-      <option value="fr">Francais</option>
-      <option value="de">Deutsch</option>
-    </select>
-    <p i18n="Pending translations message|@@frontend.pending">
-      There are {{ pendingCount() }} translations to review.
+      <span class="brand__text">
+        <strong i18n="Application name@@applicationName">
+          Translation Platform
+        </strong>
+
+        <small i18n="Application subtitle@@applicationSubtitle">
+          Multilingual content management
+        </small>
+      </span>
+    </a>
+
+    <div class="language-selector">
+      <label
+        for="application-language"
+        i18n="Language selector label@@languageSelectorLabel"
+      >
+        Language
+      </label>
+
+      <select
+        id="application-language"
+        [value]="currentLocale"
+        (change)="changeLanguage($event)"
+      >
+        <option
+          value="en"
+          i18n="English language option@@languageEnglish"
+        >
+          English
+        </option>
+
+        <option
+          value="fr"
+          i18n="French language option@@languageFrench"
+        >
+          French
+        </option>
+
+        <option
+          value="de"
+          i18n="German language option@@languageGerman"
+        >
+          German
+        </option>
+      </select>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <div class="hero__introduction">
+        <p
+          class="eyebrow"
+          i18n="Page category@@pageCategory"
+        >
+          Angular localization
+        </p>
+
+        <h1 i18n="Main page heading@@mainPageHeading">
+          One interface,<br />
+          three languages.
+        </h1>
+
+        <p
+          class="hero__description"
+          i18n="Main page description@@mainPageDescription"
+        >
+          Deliver a consistent product experience in English, French, and
+          German through a localized Angular application.
+        </p>
+
+        <p
+          class="version-message"
+          i18n="Available languages pluralized message@@localizedVersionCount"
+        >
+          {localizedVersionCount, plural,
+            =0 {No language is currently available.}
+            =1 {Available in one language}
+            other {Available in {{ localizedVersionCount }} languages}
+          }
+        </p>
+      </div>
+
+      <article class="demo-card">
+        <header class="demo-card__header">
+          <div>
+            <p
+              class="demo-card__label"
+              i18n="Interface preview label@@demoLabel"
+            >
+              Interface preview
+            </p>
+
+            <h2 i18n="Product management title@@productManagementTitle">
+              Product management
+            </h2>
+          </div>
+
+          <span
+            class="demo-card__status"
+            i18n="Active status@@activeStatus"
+          >
+            Active
+          </span>
+        </header>
+
+        <p
+          class="demo-card__description"
+          i18n="Product management description@@productManagementDescription"
+        >
+          Create and manage products in your preferred language.
+        </p>
+
+        <div class="field">
+          <label
+            for="product-name"
+            i18n="Product name field label@@productNameLabel"
+          >
+            Product name
+          </label>
+
+          <input
+            id="product-name"
+            type="text"
+            placeholder="Enter a product name"
+            i18n-placeholder="Product name field placeholder@@productNamePlaceholder"
+          />
+        </div>
+
+        <div class="actions">
+          <button
+            class="button button--primary"
+            type="button"
+            (click)="saveProduct()"
+            i18n="Save button@@saveButton"
+          >
+            Save
+          </button>
+
+          <button
+            class="button button--danger"
+            type="button"
+            (click)="deleteProduct()"
+            i18n="Delete button@@deleteButton"
+          >
+            Delete
+          </button>
+
+          <button
+            class="button button--secondary"
+            type="button"
+            (click)="cancelProduct()"
+            i18n="Cancel button@@cancelButton"
+          >
+            Cancel
+          </button>
+        </div>
+
+        @if (feedback() === 'saved') {
+          <p
+            class="feedback feedback--success"
+            role="status"
+            i18n="Product saved feedback@@productSavedMessage"
+          >
+            Product saved successfully.
+          </p>
+        }
+
+        @if (feedback() === 'deleted') {
+          <p
+            class="feedback feedback--deleted"
+            role="status"
+            i18n="Product deleted feedback@@productDeletedMessage"
+          >
+            Product deleted successfully.
+          </p>
+        }
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p i18n="Application footer@@applicationFooter">
+      Built with Angular i18n and XLIFF.
     </p>
-    <button type="button" (click)="addPendingTranslation()" i18n="Add example item action|@@frontend.add">
-      Add example item
-    </button>
-  </section>
-</main>
+  </footer>
+</div>
