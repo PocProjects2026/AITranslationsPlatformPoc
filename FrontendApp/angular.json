@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": false
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -17,13 +18,18 @@
       "sourceRoot": "src",
       "prefix": "app",
       "i18n": {
-        "sourceLocale": "en",
+        "sourceLocale": {
+          "code": "en",
+          "subPath": ""
+        },
         "locales": {
           "fr": {
-            "translation": "src/locale/messages.fr.xlf"
+            "translation": "src/locale/messages.fr.xlf",
+            "subPath": "fr"
           },
           "de": {
-            "translation": "src/locale/messages.de.xlf"
+            "translation": "src/locale/messages.de.xlf",
+            "subPath": "de"
           }
         }
       },
@@ -87,10 +93,10 @@
               "buildTarget": "FrontendApp:build:development"
             },
             "fr": {
-              "buildTarget": "FrontendApp:build:fr"
+              "buildTarget": "FrontendApp:build:development,fr"
             },
             "de": {
-              "buildTarget": "FrontendApp:build:de"
+              "buildTarget": "FrontendApp:build:development,de"
             }
           },
           "defaultConfiguration": "development"

@@ -3,8 +3,14 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "npm run preview:localized",
+    "start:dev": "ng serve",
+    "start:en": "ng serve",
+    "start:fr": "ng serve --configuration fr",
+    "start:de": "ng serve --configuration de",
     "build": "ng build",
+    "build:localized": "ng build --localize",
+    "preview:localized": "npm run build:localized && node tools/localized-preview.mjs 4300",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "extract-i18n": "ng extract-i18n --output-path src/locale"
