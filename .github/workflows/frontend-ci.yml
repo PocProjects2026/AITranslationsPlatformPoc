@@ -162,21 +162,31 @@ jobs:
       - name: Test localized routes
         shell: bash
         run: |
-          test "$(
-            curl --fail --silent http://127.0.0.1:8080/health
-          )" = "ok"
+            test "$(
+              curl --fail --silent --show-error \
+                http://127.0.0.1:8080/health
+            )" = "ok"
 
-          curl --fail --silent \
-            --output /dev/null \
-            http://127.0.0.1:8080/
+            for route in "/" "/fr/" "/de/"; do
+              echo "Testing ${route}"
 
-          curl --fail --silent \
-            --output /dev/null \
-            http://127.0.0.1:8080/fr/
+              status_code="$(
+                curl \
+                  --silent \
+                  --show-error \
+                  --location \
+                  --output /dev/null \
+                  --write-out "%{http_code}" \
+                  "http://127.0.0.1:8080${route}"
+              )"
 
-          curl --fail --silent \
-            --output /dev/null \
-            http://127.0.0.1:8080/de/
+              echo "${route} returned HTTP ${status_code}"
+
+              if [ "${status_code}" -lt 200 ] || [ "${status_code}" -ge 400 ]; then
+                echo "::error::Route ${route} returned HTTP ${status_code}"
+                exit 1
+              fi
+            done
 
       - name: Verify security headers
         shell: bash
