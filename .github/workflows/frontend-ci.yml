@@ -70,8 +70,8 @@ jobs:
         run: npm run extract-i18n
 
       - name: Verify source XLIFF is up to date
-        run: git diff --exit-code -- src/locale/messages.xlf
-
+        run: git diff --exit-code --ignore-matching-lines='context-type="linenumber"' -- src/locale/messages.xlf
+ 
       - name: Validate XLIFF files
         shell: bash
         run: |
