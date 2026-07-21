@@ -140,11 +140,7 @@ jobs:
             --name frontend-ci \
             --publish 8080:8080 \
             "${IMAGE_NAME}" 
-            
-      - name: Inspect files served by Nginx
-        run: |
-          docker exec frontend-ci sh -c \
-            'find /usr/share/nginx/html -maxdepth 4 -type f | sort'
+
 
       - name: Wait for application
         shell: bash
