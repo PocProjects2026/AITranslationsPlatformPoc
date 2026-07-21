@@ -133,8 +133,9 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            --tag "${IMAGE_NAME}" \
-            FrontendApp
+           --file FrontendApp/Dockerfile \
+          --tag "${IMAGE_NAME}" \
+           FrontendApp
 
       - name: Start Docker container
         run: |
