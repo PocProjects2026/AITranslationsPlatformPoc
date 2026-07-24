@@ -11,8 +11,15 @@ on:
       cloudflare_branch:
         description: "Branch name used for the Cloudflare Pages deployment"
         required: true
-        default: "feature/task4-frontend-cd"
+        default: "develop"
         type: string
+
+  # Temporary trigger to test the CD before creating the Pull Request.
+  push:
+    branches:
+      - feature/task4-frontend-cd
+    paths:
+      - ".github/workflows/frontend-cd.yml"
 
 permissions:
   contents: read
@@ -20,13 +27,20 @@ permissions:
   deployments: write
 
 concurrency:
-  group: frontend-cd-${{ inputs.cloudflare_branch }}
+  group: frontend-cd-${{ github.event_name == 'workflow_dispatch' && inputs.cloudflare_branch || github.ref_name }}
   cancel-in-progress: false
 
 env:
   ARTIFACT_NAME: frontend-localized-build
   DEPLOY_DIRECTORY: frontend-build
   CLOUDFLARE_PAGES_PROJECT: translation-platform-frontend
+
+  # For the temporary push test, use the artifact from this successful CI run.
+  CI_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.ci_run_id || '30102296017' }}
+
+  # Manual run: use the entered branch.
+  # Push test: use feature/task4-frontend-cd automatically.
+  CLOUDFLARE_BRANCH: ${{ github.event_name == 'workflow_dispatch' && inputs.cloudflare_branch || github.ref_name }}
 
 jobs:
   deploy:
@@ -45,16 +59,18 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
-            echo "::error::Missing secret: CLOUDFLARE_API_TOKEN"
+            echo "::error::Missing repository secret: CLOUDFLARE_API_TOKEN"
             exit 1
           fi
 
           if [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
-            echo "::error::Missing secret: CLOUDFLARE_ACCOUNT_ID"
+            echo "::error::Missing repository secret: CLOUDFLARE_ACCOUNT_ID"
             exit 1
           fi
 
           echo "Cloudflare configuration is available."
+          echo "CI run ID: ${CI_RUN_ID}"
+          echo "Cloudflare branch: ${CLOUDFLARE_BRANCH}"
 
       - name: Download validated frontend artifact
         uses: actions/download-artifact@v8
@@ -63,11 +79,14 @@ jobs:
           path: ${{ env.DEPLOY_DIRECTORY }}
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: ${{ inputs.ci_run_id }}
+          run-id: ${{ env.CI_RUN_ID }}
 
       - name: Verify downloaded artifact
         shell: bash
         run: |
+          echo "Downloaded artifact content:"
+          find "${DEPLOY_DIRECTORY}" -maxdepth 3 -type f | sort
+
           required_files=(
             "${DEPLOY_DIRECTORY}/index.html"
             "${DEPLOY_DIRECTORY}/fr/index.html"
@@ -91,11 +110,11 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: >
+          command: >-
             pages deploy ${{ env.DEPLOY_DIRECTORY }}
             --project-name=${{ env.CLOUDFLARE_PAGES_PROJECT }}
-            --branch=${{ inputs.cloudflare_branch }}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+            --branch=${{ env.CLOUDFLARE_BRANCH }}
+          gitHubToken: ${{ github.token }}
 
       - name: Get deployment URL
         id: deployment
@@ -114,6 +133,8 @@ jobs:
             echo "::error::Cloudflare did not return a deployment URL."
             exit 1
           fi
+
+          url="${url%/}"
 
           echo "url=${url}" >> "${GITHUB_OUTPUT}"
           echo "Deployment URL: ${url}"
@@ -139,7 +160,8 @@ jobs:
 
               echo "Attempt ${attempt}: ${route} returned HTTP ${status_code}"
 
-              if [ "${status_code}" -ge 200 ] &&
+              if [[ "${status_code}" =~ ^[0-9]{3}$ ]] &&
+                 [ "${status_code}" -ge 200 ] &&
                  [ "${status_code}" -lt 400 ]; then
                 deployed=true
                 break
@@ -167,8 +189,8 @@ jobs:
             echo "| Property | Value |"
             echo "| --- | --- |"
             echo "| Project | ${CLOUDFLARE_PAGES_PROJECT} |"
-            echo "| Cloudflare branch | ${{ inputs.cloudflare_branch }} |"
-            echo "| CI run ID | ${{ inputs.ci_run_id }} |"
+            echo "| Cloudflare branch | ${CLOUDFLARE_BRANCH} |"
+            echo "| CI run ID | ${CI_RUN_ID} |"
             echo "| Artifact | ${ARTIFACT_NAME} |"
             echo "| Deployment URL | ${DEPLOYMENT_URL} |"
           } >> "${GITHUB_STEP_SUMMARY}"
