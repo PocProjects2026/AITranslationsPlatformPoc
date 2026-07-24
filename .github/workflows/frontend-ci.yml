@@ -8,6 +8,7 @@ on:
     paths:
       - "FrontendApp/**"
       - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/frontend-cd.yml"
 
   push:
     branches:
@@ -17,6 +18,7 @@ on:
     paths:
       - "FrontendApp/**"
       - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/frontend-cd.yml"
 
   workflow_dispatch:
 
@@ -30,6 +32,7 @@ concurrency:
 env:
   NODE_VERSION: "24.16.0"
   IMAGE_NAME: translation-platform-frontend:${{ github.sha }}
+  ARTIFACT_NAME: frontend-localized-build
 
 jobs:
   frontend-quality:
@@ -43,10 +46,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -70,8 +73,12 @@ jobs:
         run: npm run extract-i18n
 
       - name: Verify source XLIFF is up to date
-        run: git diff --exit-code --ignore-matching-lines='context-type="linenumber"' -- src/locale/messages.xlf
- 
+        run: |
+          git diff \
+            --exit-code \
+            --ignore-matching-lines='context-type="linenumber"' \
+            -- src/locale/messages.xlf
+
       - name: Validate XLIFF files
         shell: bash
         run: |
@@ -108,14 +115,16 @@ jobs:
           print("All XLIFF files are valid.")
           PY
 
-      - name: Build English bundle
-        run: npm run build
+      - name: Build localized frontend
+        run: npm run build:localized
 
-      - name: Build French bundle
-        run: npm run build -- --configuration fr
-
-      - name: Build German bundle
-        run: npm run build -- --configuration de
+      - name: Upload localized frontend artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: FrontendApp/dist/FrontendApp/browser
+          if-no-files-found: error
+          retention-days: 30
 
   container-validation:
     name: Docker container checks
@@ -125,11 +134,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6
 
       - name: Build Docker image
         run: |
           docker build \
+            --file FrontendApp/Dockerfile \
             --tag "${IMAGE_NAME}" \
             FrontendApp
 
@@ -139,14 +149,15 @@ jobs:
             --detach \
             --name frontend-ci \
             --publish 8080:8080 \
-            "${IMAGE_NAME}" 
-
+            "${IMAGE_NAME}"
 
       - name: Wait for application
         shell: bash
         run: |
           for attempt in {1..30}; do
-            if curl --fail --silent \
+            if curl \
+              --fail \
+              --silent \
               http://127.0.0.1:8080/health > /dev/null; then
               echo "Container is healthy."
               exit 0
@@ -156,63 +167,77 @@ jobs:
             sleep 2
           done
 
-          echo "Container did not become healthy."
-          docker logs frontend-ci
+          echo "::error::Container did not become healthy."
           exit 1
 
       - name: Test localized routes
         shell: bash
         run: |
-            test "$(
-              curl --fail --silent --show-error \
-                http://127.0.0.1:8080/health
-            )" = "ok"
+          test "$(
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              http://127.0.0.1:8080/health
+          )" = "ok"
 
-            for route in "/" "/fr/" "/de/"; do
-              echo "Testing ${route}"
+          for route in "/" "/fr/" "/de/"; do
+            echo "Testing ${route}"
 
-              status_code="$(
-                curl \
-                  --silent \
-                  --show-error \
-                  --location \
-                  --output /dev/null \
-                  --write-out "%{http_code}" \
-                  "http://127.0.0.1:8080${route}"
-              )"
+            status_code="$(
+              curl \
+                --silent \
+                --show-error \
+                --location \
+                --output /dev/null \
+                --write-out "%{http_code}" \
+                "http://127.0.0.1:8080${route}"
+            )"
 
-              echo "${route} returned HTTP ${status_code}"
+            echo "${route} returned HTTP ${status_code}"
 
-              if [ "${status_code}" -lt 200 ] || [ "${status_code}" -ge 400 ]; then
-                echo "::error::Route ${route} returned HTTP ${status_code}"
-                exit 1
-              fi
-            done
+            if [ "${status_code}" -lt 200 ] ||
+               [ "${status_code}" -ge 400 ]; then
+              echo "::error::Route ${route} returned HTTP ${status_code}"
+              exit 1
+            fi
+          done
 
       - name: Verify security headers
         shell: bash
         run: |
-          curl --fail --silent \
+          curl \
+            --fail \
+            --silent \
             --dump-header response-headers.txt \
             --output /dev/null \
             http://127.0.0.1:8080/
 
-          grep --ignore-case \
+          grep \
+            --ignore-case \
             "^X-Content-Type-Options: nosniff" \
             response-headers.txt
 
-          grep --ignore-case \
+          grep \
+            --ignore-case \
             "^X-Frame-Options: DENY" \
             response-headers.txt
 
-          grep --ignore-case \
+          grep \
+            --ignore-case \
             "^Content-Security-Policy:" \
             response-headers.txt
 
       - name: Display container logs on failure
         if: failure()
-        run: docker logs frontend-ci
+        run: |
+          if docker container inspect frontend-ci > /dev/null 2>&1; then
+            docker logs frontend-ci
+          else
+            echo "Container frontend-ci was not created."
+          fi
 
       - name: Remove test container
         if: always()
-        run: docker rm --force frontend-ci || true
+        run: |
+          docker rm --force frontend-ci 2>/dev/null || true
