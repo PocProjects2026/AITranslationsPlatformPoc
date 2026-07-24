@@ -24,7 +24,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
 
 concurrency:
   group: frontend-ci-${{ github.ref }}
@@ -106,7 +105,9 @@ jobs:
                   sys.exit(1)
 
               if root.attrib.get("version") != "1.2":
-                  print(f"::error::{file_path} must use XLIFF version 1.2")
+                  print(
+                      f"::error::{file_path} must use XLIFF version 1.2"
+                  )
                   sys.exit(1)
 
               print(f"Valid XLIFF file: {file_path}")
@@ -118,7 +119,7 @@ jobs:
         run: npm run build:localized
 
       - name: Upload localized frontend artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: FrontendApp/dist/FrontendApp/browser
@@ -240,167 +241,3 @@ jobs:
         if: always()
         run: |
           docker rm --force frontend-ci 2>/dev/null || true
-
-  deploy-rollback-test:
-    name: Deploy artifact for rollback test
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    needs:
-      - frontend-quality
-      - container-validation
-
-    if: >
-      github.event_name == 'push' &&
-      github.ref_name == 'feature/task4-frontend-cd'
-
-    permissions:
-      contents: read
-      actions: read
-      deployments: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Check Cloudflare configuration
-        shell: bash
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
-            echo "::error::Missing secret: CLOUDFLARE_API_TOKEN"
-            exit 1
-          fi
-
-          if [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
-            echo "::error::Missing secret: CLOUDFLARE_ACCOUNT_ID"
-            exit 1
-          fi
-
-          echo "Cloudflare configuration is available."
-
-      - name: Download artifact from this CI run
-        uses: actions/download-artifact@v8
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: frontend-build
-
-      - name: Verify downloaded artifact
-        shell: bash
-        run: |
-          echo "Downloaded artifact content:"
-          find frontend-build -maxdepth 3 -type f | sort
-
-          required_files=(
-            "frontend-build/index.html"
-            "frontend-build/fr/index.html"
-            "frontend-build/de/index.html"
-          )
-
-          for file_path in "${required_files[@]}"; do
-            if [ ! -f "${file_path}" ]; then
-              echo "::error::Missing deployment file: ${file_path}"
-              exit 1
-            fi
-
-            echo "Found: ${file_path}"
-          done
-
-          echo "The artifact from this CI run is ready for deployment."
-
-      - name: Deploy artifact to Cloudflare Pages
-        id: deploy
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4"
-          command: >-
-            pages deploy frontend-build
-            --project-name=translation-platform-frontend
-            --branch=main
-          gitHubToken: ${{ github.token }}
-
-      - name: Get deployment URL
-        id: deployment
-        shell: bash
-        env:
-          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
-          DEPLOYMENT_ALIAS_URL: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
-        run: |
-          url="${DEPLOYMENT_URL}"
-
-          if [ -z "${url}" ]; then
-            url="${DEPLOYMENT_ALIAS_URL}"
-          fi
-
-          if [ -z "${url}" ]; then
-            echo "::error::Cloudflare did not return a deployment URL."
-            exit 1
-          fi
-
-          url="${url%/}"
-
-          echo "url=${url}" >> "${GITHUB_OUTPUT}"
-          echo "Deployment URL: ${url}"
-
-      - name: Run deployment smoke tests
-        shell: bash
-        env:
-          DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
-        run: |
-          for route in "/" "/fr/" "/de/"; do
-            deployed=false
-
-            for attempt in {1..10}; do
-              status_code="$(
-                curl \
-                  --silent \
-                  --show-error \
-                  --location \
-                  --output /dev/null \
-                  --write-out "%{http_code}" \
-                  "${DEPLOYMENT_URL}${route}" || true
-              )"
-
-              echo "Attempt ${attempt}: ${route} returned HTTP ${status_code}"
-
-              if [[ "${status_code}" =~ ^[0-9]{3}$ ]] &&
-                 [ "${status_code}" -ge 200 ] &&
-                 [ "${status_code}" -lt 400 ]; then
-                deployed=true
-                break
-              fi
-
-              sleep 3
-            done
-
-            if [ "${deployed}" != "true" ]; then
-              echo "::error::Smoke test failed for ${route}"
-              exit 1
-            fi
-          done
-
-          echo "All deployed routes are available."
-
-      - name: Write deployment summary
-        shell: bash
-        env:
-          DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
-        run: |
-          {
-            echo "## Rollback test deployment"
-            echo ""
-            echo "| Property | Value |"
-            echo "| --- | --- |"
-            echo "| Cloudflare project | translation-platform-frontend |"
-            echo "| Source branch | ${GITHUB_REF_NAME} |"
-            echo "| Cloudflare branch | main |"
-            echo "| Source commit | ${GITHUB_SHA} |"
-            echo "| CI run ID | ${GITHUB_RUN_ID} |"
-            echo "| Artifact | ${ARTIFACT_NAME} |"
-            echo "| Deployment URL | ${DEPLOYMENT_URL} |"
-            echo "| Production URL | https://translation-platform-frontend.pages.dev |"
-          } >> "${GITHUB_STEP_SUMMARY}"

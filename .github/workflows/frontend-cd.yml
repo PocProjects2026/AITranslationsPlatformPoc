@@ -21,7 +21,10 @@ on:
         description: "Cloudflare Pages branch"
         required: true
         default: "develop"
-        type: string
+        type: choice
+        options:
+          - develop
+          - main
 
 permissions:
   contents: read
@@ -30,9 +33,9 @@ permissions:
 
 concurrency:
   group: frontend-cd-${{
-    github.event_name == 'workflow_run'
-    && github.event.workflow_run.head_branch
-    || inputs.cloudflare_branch
+    github.event.workflow_run.head_branch ||
+    inputs.cloudflare_branch ||
+    github.ref_name
     }}
   cancel-in-progress: false
 
@@ -40,24 +43,6 @@ env:
   ARTIFACT_NAME: frontend-localized-build
   DEPLOY_DIRECTORY: frontend-build
   CLOUDFLARE_PAGES_PROJECT: translation-platform-frontend
-
-  CI_RUN_ID: ${{
-    github.event_name == 'workflow_run'
-    && github.event.workflow_run.id
-    || inputs.ci_run_id
-    }}
-
-  CLOUDFLARE_BRANCH: ${{
-    github.event_name == 'workflow_run'
-    && github.event.workflow_run.head_branch
-    || inputs.cloudflare_branch
-    }}
-
-  SOURCE_SHA: ${{
-    github.event_name == 'workflow_run'
-    && github.event.workflow_run.head_sha
-    || github.sha
-    }}
 
 jobs:
   deploy:
@@ -71,12 +56,101 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Resolve deployment context
+        id: context
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+
+          AUTOMATIC_CI_RUN_ID: ${{ github.event.workflow_run.id }}
+          AUTOMATIC_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          AUTOMATIC_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+
+          MANUAL_CI_RUN_ID: ${{ inputs.ci_run_id }}
+          MANUAL_BRANCH: ${{ inputs.cloudflare_branch }}
+        run: |
+          if [ "${EVENT_NAME}" = "workflow_run" ]; then
+            ci_run_id="${AUTOMATIC_CI_RUN_ID}"
+            source_branch="${AUTOMATIC_BRANCH}"
+            source_sha="${AUTOMATIC_SOURCE_SHA}"
+            cloudflare_branch="${AUTOMATIC_BRANCH}"
+          else
+            if [ -z "${MANUAL_CI_RUN_ID}" ]; then
+              echo "::error::Missing CI run ID."
+              exit 1
+            fi
+
+            run_json="$(
+              gh api \
+                "repos/${GITHUB_REPOSITORY}/actions/runs/${MANUAL_CI_RUN_ID}"
+            )"
+
+            workflow_name="$(
+              echo "${run_json}" | jq --raw-output '.name // empty'
+            )"
+
+            conclusion="$(
+              echo "${run_json}" | jq --raw-output '.conclusion // empty'
+            )"
+
+            source_branch="$(
+              echo "${run_json}" | jq --raw-output '.head_branch // empty'
+            )"
+
+            source_sha="$(
+              echo "${run_json}" | jq --raw-output '.head_sha // empty'
+            )"
+
+            if [ "${workflow_name}" != "Frontend CI" ]; then
+              echo "::error::The selected run is not a Frontend CI run."
+              exit 1
+            fi
+
+            if [ "${conclusion}" != "success" ]; then
+              echo "::error::The selected Frontend CI run was not successful."
+              exit 1
+            fi
+
+            ci_run_id="${MANUAL_CI_RUN_ID}"
+            cloudflare_branch="${MANUAL_BRANCH}"
+          fi
+
+          case "${source_branch}" in
+            develop|main)
+              ;;
+            *)
+              echo "::error::Deployment is only allowed from develop or main."
+              exit 1
+              ;;
+          esac
+
+          if [ "${cloudflare_branch}" != "${source_branch}" ]; then
+            echo "::error::Cloudflare branch must match the CI source branch."
+            exit 1
+          fi
+
+          if [ -z "${source_sha}" ]; then
+            echo "::error::Missing source commit SHA."
+            exit 1
+          fi
+
+          echo "ci_run_id=${ci_run_id}" >> "${GITHUB_OUTPUT}"
+          echo "source_branch=${source_branch}" >> "${GITHUB_OUTPUT}"
+          echo "source_sha=${source_sha}" >> "${GITHUB_OUTPUT}"
+          echo "cloudflare_branch=${cloudflare_branch}" >> "${GITHUB_OUTPUT}"
+
+          echo "CI run ID: ${ci_run_id}"
+          echo "Source branch: ${source_branch}"
+          echo "Source commit: ${source_sha}"
+          echo "Cloudflare branch: ${cloudflare_branch}"
+
       - name: Checkout deployed commit
         uses: actions/checkout@v6
         with:
-          ref: ${{ env.SOURCE_SHA }}
+          ref: ${{ steps.context.outputs.source_sha }}
 
-      - name: Check deployment configuration
+      - name: Check Cloudflare configuration
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -92,33 +166,23 @@ jobs:
             exit 1
           fi
 
-          if [ -z "${CI_RUN_ID}" ]; then
-            echo "::error::Missing CI run ID."
-            exit 1
-          fi
-
-          if [ -z "${CLOUDFLARE_BRANCH}" ]; then
-            echo "::error::Missing Cloudflare branch."
-            exit 1
-          fi
-
           echo "Cloudflare configuration is available."
-          echo "CI run ID: ${CI_RUN_ID}"
-          echo "Source commit: ${SOURCE_SHA}"
-          echo "Cloudflare branch: ${CLOUDFLARE_BRANCH}"
 
       - name: Download validated frontend artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.DEPLOY_DIRECTORY }}
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: ${{ env.CI_RUN_ID }}
+          run-id: ${{ steps.context.outputs.ci_run_id }}
 
       - name: Verify downloaded artifact
         shell: bash
         run: |
+          echo "Downloaded artifact content:"
+          find "${DEPLOY_DIRECTORY}" -maxdepth 3 -type f | sort
+
           required_files=(
             "${DEPLOY_DIRECTORY}/index.html"
             "${DEPLOY_DIRECTORY}/fr/index.html"
@@ -134,7 +198,7 @@ jobs:
             echo "Found: ${file_path}"
           done
 
-          echo "The frontend artifact is ready for deployment."
+          echo "The validated frontend artifact is ready for deployment."
 
       - name: Deploy to Cloudflare Pages
         id: deploy
@@ -142,10 +206,11 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
           command: >-
             pages deploy ${{ env.DEPLOY_DIRECTORY }}
             --project-name=${{ env.CLOUDFLARE_PAGES_PROJECT }}
-            --branch=${{ env.CLOUDFLARE_BRANCH }}
+            --branch=${{ steps.context.outputs.cloudflare_branch }}
           gitHubToken: ${{ github.token }}
 
       - name: Get deployment URL
@@ -214,13 +279,18 @@ jobs:
         shell: bash
         env:
           DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
+          CI_RUN_ID: ${{ steps.context.outputs.ci_run_id }}
+          SOURCE_BRANCH: ${{ steps.context.outputs.source_branch }}
+          SOURCE_SHA: ${{ steps.context.outputs.source_sha }}
+          CLOUDFLARE_BRANCH: ${{ steps.context.outputs.cloudflare_branch }}
         run: |
           {
             echo "## Frontend deployment"
             echo ""
             echo "| Property | Value |"
             echo "| --- | --- |"
-            echo "| Project | ${CLOUDFLARE_PAGES_PROJECT} |"
+            echo "| Cloudflare project | ${CLOUDFLARE_PAGES_PROJECT} |"
+            echo "| Source branch | ${SOURCE_BRANCH} |"
             echo "| Cloudflare branch | ${CLOUDFLARE_BRANCH} |"
             echo "| Source commit | ${SOURCE_SHA} |"
             echo "| CI run ID | ${CI_RUN_ID} |"
