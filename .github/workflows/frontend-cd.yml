@@ -1,25 +1,27 @@
 name: Frontend CD
 
 on:
+  workflow_run:
+    workflows:
+      - Frontend CI
+    types:
+      - completed
+    branches:
+      - develop
+      - main
+
   workflow_dispatch:
     inputs:
       ci_run_id:
-        description: "ID of the successful Frontend CI run"
+        description: "ID of a successful Frontend CI run"
         required: true
         type: string
 
       cloudflare_branch:
-        description: "Branch name used for the Cloudflare Pages deployment"
+        description: "Cloudflare Pages branch"
         required: true
         default: "develop"
         type: string
-
-  # Temporary trigger to test the CD before creating the Pull Request.
-  push:
-    branches:
-      - feature/task4-frontend-cd
-    paths:
-      - ".github/workflows/frontend-cd.yml"
 
 permissions:
   contents: read
@@ -27,7 +29,11 @@ permissions:
   deployments: write
 
 concurrency:
-  group: frontend-cd-${{ github.event_name == 'workflow_dispatch' && inputs.cloudflare_branch || github.ref_name }}
+  group: frontend-cd-${{
+    github.event_name == 'workflow_run'
+    && github.event.workflow_run.head_branch
+    || inputs.cloudflare_branch
+    }}
   cancel-in-progress: false
 
 env:
@@ -35,45 +41,74 @@ env:
   DEPLOY_DIRECTORY: frontend-build
   CLOUDFLARE_PAGES_PROJECT: translation-platform-frontend
 
-  # For the temporary push test, use the artifact from this successful CI run.
-  CI_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.ci_run_id || '30102296017' }}
+  CI_RUN_ID: ${{
+    github.event_name == 'workflow_run'
+    && github.event.workflow_run.id
+    || inputs.ci_run_id
+    }}
 
-  # Manual run: use the entered branch.
-  # Push test: use feature/task4-frontend-cd automatically.
-  CLOUDFLARE_BRANCH: ${{ github.event_name == 'workflow_dispatch' && inputs.cloudflare_branch || github.ref_name }}
+  CLOUDFLARE_BRANCH: ${{
+    github.event_name == 'workflow_run'
+    && github.event.workflow_run.head_branch
+    || inputs.cloudflare_branch
+    }}
+
+  SOURCE_SHA: ${{
+    github.event_name == 'workflow_run'
+    && github.event.workflow_run.head_sha
+    || github.sha
+    }}
 
 jobs:
   deploy:
     name: Deploy frontend to Cloudflare Pages
+
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
-      - name: Checkout repository
+      - name: Checkout deployed commit
         uses: actions/checkout@v6
+        with:
+          ref: ${{ env.SOURCE_SHA }}
 
-      - name: Check Cloudflare configuration
+      - name: Check deployment configuration
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
-            echo "::error::Missing repository secret: CLOUDFLARE_API_TOKEN"
+            echo "::error::Missing secret: CLOUDFLARE_API_TOKEN"
             exit 1
           fi
 
           if [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
-            echo "::error::Missing repository secret: CLOUDFLARE_ACCOUNT_ID"
+            echo "::error::Missing secret: CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          fi
+
+          if [ -z "${CI_RUN_ID}" ]; then
+            echo "::error::Missing CI run ID."
+            exit 1
+          fi
+
+          if [ -z "${CLOUDFLARE_BRANCH}" ]; then
+            echo "::error::Missing Cloudflare branch."
             exit 1
           fi
 
           echo "Cloudflare configuration is available."
           echo "CI run ID: ${CI_RUN_ID}"
+          echo "Source commit: ${SOURCE_SHA}"
           echo "Cloudflare branch: ${CLOUDFLARE_BRANCH}"
 
       - name: Download validated frontend artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.DEPLOY_DIRECTORY }}
@@ -84,9 +119,6 @@ jobs:
       - name: Verify downloaded artifact
         shell: bash
         run: |
-          echo "Downloaded artifact content:"
-          find "${DEPLOY_DIRECTORY}" -maxdepth 3 -type f | sort
-
           required_files=(
             "${DEPLOY_DIRECTORY}/index.html"
             "${DEPLOY_DIRECTORY}/fr/index.html"
@@ -102,7 +134,7 @@ jobs:
             echo "Found: ${file_path}"
           done
 
-          echo "Frontend artifact is ready for deployment."
+          echo "The frontend artifact is ready for deployment."
 
       - name: Deploy to Cloudflare Pages
         id: deploy
@@ -190,6 +222,7 @@ jobs:
             echo "| --- | --- |"
             echo "| Project | ${CLOUDFLARE_PAGES_PROJECT} |"
             echo "| Cloudflare branch | ${CLOUDFLARE_BRANCH} |"
+            echo "| Source commit | ${SOURCE_SHA} |"
             echo "| CI run ID | ${CI_RUN_ID} |"
             echo "| Artifact | ${ARTIFACT_NAME} |"
             echo "| Deployment URL | ${DEPLOYMENT_URL} |"

@@ -8,6 +8,7 @@ on:
     paths:
       - "FrontendApp/**"
       - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/frontend-cd.yml"
 
   push:
     branches:
@@ -31,6 +32,7 @@ concurrency:
 env:
   NODE_VERSION: "24.16.0"
   IMAGE_NAME: translation-platform-frontend:${{ github.sha }}
+  ARTIFACT_NAME: frontend-localized-build
 
 jobs:
   frontend-quality:
@@ -44,10 +46,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -71,8 +73,12 @@ jobs:
         run: npm run extract-i18n
 
       - name: Verify source XLIFF is up to date
-        run: git diff --exit-code --ignore-matching-lines='context-type="linenumber"' -- src/locale/messages.xlf
- 
+        run: |
+          git diff \
+            --exit-code \
+            --ignore-matching-lines='context-type="linenumber"' \
+            -- src/locale/messages.xlf
+
       - name: Validate XLIFF files
         shell: bash
         run: |
@@ -109,17 +115,16 @@ jobs:
           print("All XLIFF files are valid.")
           PY
 
-      - name: Build 
+      - name: Build localized frontend
         run: npm run build:localized
-      
-      - name: save artifact
-        uses:  actions/upload-artifact@v4
+
+      - name: Upload localized frontend artifact
+        uses: actions/upload-artifact@v7
         with:
-          name: frontend-localized-build
+          name: ${{ env.ARTIFACT_NAME }}
           path: FrontendApp/dist/FrontendApp/browser
           if-no-files-found: error
-          retention-days: 30 
-
+          retention-days: 30
 
   container-validation:
     name: Docker container checks
@@ -129,14 +134,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6
 
       - name: Build Docker image
         run: |
           docker build \
-           --file FrontendApp/Dockerfile \
-          --tag "${IMAGE_NAME}" \
-           FrontendApp
+            --file FrontendApp/Dockerfile \
+            --tag "${IMAGE_NAME}" \
+            FrontendApp
 
       - name: Start Docker container
         run: |
@@ -144,14 +149,15 @@ jobs:
             --detach \
             --name frontend-ci \
             --publish 8080:8080 \
-            "${IMAGE_NAME}" 
-
+            "${IMAGE_NAME}"
 
       - name: Wait for application
         shell: bash
         run: |
           for attempt in {1..30}; do
-            if curl --fail --silent \
+            if curl \
+              --fail \
+              --silent \
               http://127.0.0.1:8080/health > /dev/null; then
               echo "Container is healthy."
               exit 0
@@ -161,21 +167,186 @@ jobs:
             sleep 2
           done
 
-          echo "Container did not become healthy."
-          docker logs frontend-ci
+          echo "::error::Container did not become healthy."
           exit 1
 
       - name: Test localized routes
         shell: bash
         run: |
-            test "$(
-              curl --fail --silent --show-error \
-                http://127.0.0.1:8080/health
-            )" = "ok"
+          test "$(
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              http://127.0.0.1:8080/health
+          )" = "ok"
 
-            for route in "/" "/fr/" "/de/"; do
-              echo "Testing ${route}"
+          for route in "/" "/fr/" "/de/"; do
+            echo "Testing ${route}"
 
+            status_code="$(
+              curl \
+                --silent \
+                --show-error \
+                --location \
+                --output /dev/null \
+                --write-out "%{http_code}" \
+                "http://127.0.0.1:8080${route}"
+            )"
+
+            echo "${route} returned HTTP ${status_code}"
+
+            if [ "${status_code}" -lt 200 ] ||
+               [ "${status_code}" -ge 400 ]; then
+              echo "::error::Route ${route} returned HTTP ${status_code}"
+              exit 1
+            fi
+          done
+
+      - name: Verify security headers
+        shell: bash
+        run: |
+          curl \
+            --fail \
+            --silent \
+            --dump-header response-headers.txt \
+            --output /dev/null \
+            http://127.0.0.1:8080/
+
+          grep \
+            --ignore-case \
+            "^X-Content-Type-Options: nosniff" \
+            response-headers.txt
+
+          grep \
+            --ignore-case \
+            "^X-Frame-Options: DENY" \
+            response-headers.txt
+
+          grep \
+            --ignore-case \
+            "^Content-Security-Policy:" \
+            response-headers.txt
+
+      - name: Display container logs on failure
+        if: failure()
+        run: |
+          if docker container inspect frontend-ci > /dev/null 2>&1; then
+            docker logs frontend-ci
+          else
+            echo "Container frontend-ci was not created."
+          fi
+
+      - name: Remove test container
+        if: always()
+        run: |
+          docker rm --force frontend-ci 2>/dev/null || true
+
+  deploy-feature-test:
+    name: Deploy tested artifact to Cloudflare Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    needs:
+      - frontend-quality
+      - container-validation
+
+    if: >
+      github.event_name == 'push' &&
+      github.ref_name == 'feature/task4-frontend-cd'
+
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Check Cloudflare secrets
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
+            echo "::error::Missing secret: CLOUDFLARE_API_TOKEN"
+            exit 1
+          fi
+
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "::error::Missing secret: CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          fi
+
+          echo "Cloudflare secrets are available."
+
+      - name: Download artifact from this CI run
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: frontend-build
+
+      - name: Verify downloaded artifact
+        shell: bash
+        run: |
+          echo "Downloaded artifact content:"
+          find frontend-build -maxdepth 3 -type f | sort
+
+          required_files=(
+            "frontend-build/index.html"
+            "frontend-build/fr/index.html"
+            "frontend-build/de/index.html"
+          )
+
+          for file_path in "${required_files[@]}"; do
+            if [ ! -f "${file_path}" ]; then
+              echo "::error::Missing deployment file: ${file_path}"
+              exit 1
+            fi
+
+            echo "Found: ${file_path}"
+          done
+
+          echo "The validated artifact is ready for deployment."
+
+      - name: Deploy tested artifact to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy frontend-build
+            --project-name=translation-platform-frontend
+            --branch=main
+          gitHubToken: ${{ github.token }}
+
+      - name: Get deployment URL
+        id: deployment
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          if [ -z "${DEPLOYMENT_URL}" ]; then
+            echo "::error::Cloudflare did not return a deployment URL."
+            exit 1
+          fi
+
+          url="${DEPLOYMENT_URL%/}"
+
+          echo "url=${url}" >> "${GITHUB_OUTPUT}"
+          echo "Deployment URL: ${url}"
+
+      - name: Run deployment smoke tests
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
+        run: |
+          for route in "/" "/fr/" "/de/"; do
+            deployed=false
+
+            for attempt in {1..10}; do
               status_code="$(
                 curl \
                   --silent \
@@ -183,41 +354,44 @@ jobs:
                   --location \
                   --output /dev/null \
                   --write-out "%{http_code}" \
-                  "http://127.0.0.1:8080${route}"
+                  "${DEPLOYMENT_URL}${route}" || true
               )"
 
-              echo "${route} returned HTTP ${status_code}"
+              echo "Attempt ${attempt}: ${route} returned HTTP ${status_code}"
 
-              if [ "${status_code}" -lt 200 ] || [ "${status_code}" -ge 400 ]; then
-                echo "::error::Route ${route} returned HTTP ${status_code}"
-                exit 1
+              if [[ "${status_code}" =~ ^[0-9]{3}$ ]] &&
+                 [ "${status_code}" -ge 200 ] &&
+                 [ "${status_code}" -lt 400 ]; then
+                deployed=true
+                break
               fi
+
+              sleep 3
             done
 
-      - name: Verify security headers
+            if [ "${deployed}" != "true" ]; then
+              echo "::error::Smoke test failed for ${route}"
+              exit 1
+            fi
+          done
+
+          echo "All deployed routes are available."
+
+      - name: Write deployment summary
         shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
         run: |
-          curl --fail --silent \
-            --dump-header response-headers.txt \
-            --output /dev/null \
-            http://127.0.0.1:8080/
-
-          grep --ignore-case \
-            "^X-Content-Type-Options: nosniff" \
-            response-headers.txt
-
-          grep --ignore-case \
-            "^X-Frame-Options: DENY" \
-            response-headers.txt
-
-          grep --ignore-case \
-            "^Content-Security-Policy:" \
-            response-headers.txt
-
-      - name: Display container logs on failure
-        if: failure()
-        run: docker logs frontend-ci
-
-      - name: Remove test container
-        if: always()
-        run: docker rm --force frontend-ci || true
+          {
+            echo "## Rollback test deployment"
+            echo ""
+            echo "| Property | Value |"
+            echo "| --- | --- |"
+            echo "| Project | translation-platform-frontend |"
+            echo "| Source branch | ${GITHUB_REF_NAME} |"
+            echo "| Cloudflare branch | main |"
+            echo "| Commit | ${GITHUB_SHA} |"
+            echo "| Artifact | ${ARTIFACT_NAME} |"
+            echo "| Deployment URL | ${DEPLOYMENT_URL} |"
+            echo "| Production URL | https://translation-platform-frontend.pages.dev |"
+          } >> "${GITHUB_STEP_SUMMARY}"
