@@ -24,6 +24,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: frontend-ci-${{ github.ref }}
@@ -105,9 +106,7 @@ jobs:
                   sys.exit(1)
 
               if root.attrib.get("version") != "1.2":
-                  print(
-                      f"::error::{file_path} must use XLIFF version 1.2"
-                  )
+                  print(f"::error::{file_path} must use XLIFF version 1.2")
                   sys.exit(1)
 
               print(f"Valid XLIFF file: {file_path}")
@@ -242,8 +241,8 @@ jobs:
         run: |
           docker rm --force frontend-ci 2>/dev/null || true
 
-  deploy-feature-test:
-    name: Deploy tested artifact to Cloudflare Pages
+  deploy-rollback-test:
+    name: Deploy artifact for rollback test
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -257,13 +256,14 @@ jobs:
 
     permissions:
       contents: read
+      actions: read
       deployments: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Check Cloudflare secrets
+      - name: Check Cloudflare configuration
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -279,7 +279,7 @@ jobs:
             exit 1
           fi
 
-          echo "Cloudflare secrets are available."
+          echo "Cloudflare configuration is available."
 
       - name: Download artifact from this CI run
         uses: actions/download-artifact@v8
@@ -308,14 +308,15 @@ jobs:
             echo "Found: ${file_path}"
           done
 
-          echo "The validated artifact is ready for deployment."
+          echo "The artifact from this CI run is ready for deployment."
 
-      - name: Deploy tested artifact to Cloudflare Pages
+      - name: Deploy artifact to Cloudflare Pages
         id: deploy
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
           command: >-
             pages deploy frontend-build
             --project-name=translation-platform-frontend
@@ -327,13 +328,20 @@ jobs:
         shell: bash
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          DEPLOYMENT_ALIAS_URL: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
         run: |
-          if [ -z "${DEPLOYMENT_URL}" ]; then
+          url="${DEPLOYMENT_URL}"
+
+          if [ -z "${url}" ]; then
+            url="${DEPLOYMENT_ALIAS_URL}"
+          fi
+
+          if [ -z "${url}" ]; then
             echo "::error::Cloudflare did not return a deployment URL."
             exit 1
           fi
 
-          url="${DEPLOYMENT_URL%/}"
+          url="${url%/}"
 
           echo "url=${url}" >> "${GITHUB_OUTPUT}"
           echo "Deployment URL: ${url}"
@@ -387,10 +395,11 @@ jobs:
             echo ""
             echo "| Property | Value |"
             echo "| --- | --- |"
-            echo "| Project | translation-platform-frontend |"
+            echo "| Cloudflare project | translation-platform-frontend |"
             echo "| Source branch | ${GITHUB_REF_NAME} |"
             echo "| Cloudflare branch | main |"
-            echo "| Commit | ${GITHUB_SHA} |"
+            echo "| Source commit | ${GITHUB_SHA} |"
+            echo "| CI run ID | ${GITHUB_RUN_ID} |"
             echo "| Artifact | ${ARTIFACT_NAME} |"
             echo "| Deployment URL | ${DEPLOYMENT_URL} |"
             echo "| Production URL | https://translation-platform-frontend.pages.dev |"
