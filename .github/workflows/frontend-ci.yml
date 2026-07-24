@@ -17,6 +17,7 @@ on:
     paths:
       - "FrontendApp/**"
       - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/frontend-cd.yml"
 
   workflow_dispatch:
 
