@@ -1,0 +1,61 @@
+name: Test R2 translation storage
+
+on:
+  push:
+    branches:
+      - feature/task5-translation-storage
+    
+permissions:
+  contents: read
+
+jobs:
+  test-r2:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        translation_version:
+          - version-1
+          - version-2
+
+    env:
+      R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+      R2_BUCKET: ${{ vars.R2_BUCKET }}
+
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+
+    steps:
+      - name: Install AWS CLI
+        run: python -m pip install awscli
+
+      - name: Download translation version
+        env:
+          TRANSLATION_VERSION: ${{ matrix.translation_version }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p downloaded-translations
+
+          for file in messages.xlf messages.fr.xlf messages.de.xlf
+          do
+            aws s3 cp \
+              "s3://${R2_BUCKET}/translations/${TRANSLATION_VERSION}/${file}" \
+              "downloaded-translations/${file}" \
+              --endpoint-url "${R2_ENDPOINT}"
+          done
+
+      - name: Verify downloaded files
+        env:
+          TRANSLATION_VERSION: ${{ matrix.translation_version }}
+        run: |
+          set -euo pipefail
+
+          test -s downloaded-translations/messages.xlf
+          test -s downloaded-translations/messages.fr.xlf
+          test -s downloaded-translations/messages.de.xlf
+
+          echo "Successfully downloaded ${TRANSLATION_VERSION}"
+          ls -lh downloaded-translations
