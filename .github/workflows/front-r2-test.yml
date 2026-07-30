@@ -18,7 +18,7 @@ env:
   IMAGE_NAME: translation-platform-frontend-r2:${{ github.sha }}
   ARTIFACT_NAME: frontend-localized-build-r2-test
 
-  TRANSLATION_VERSION: ${{ vars.TRANSLATION_VERSION || 'version-1' }}
+  TRANSLATION_VERSION: 'version-2'
   R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
   R2_BUCKET: ${{ vars.R2_BUCKET }}
   AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
