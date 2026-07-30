@@ -1,0 +1,416 @@
+name: Frontend R2 end-to-end test
+
+on:
+  push:
+    branches:
+      - feature/task5-translation-storage
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: frontend-r2-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24.16.0"
+  IMAGE_NAME: translation-platform-frontend-r2:${{ github.sha }}
+  ARTIFACT_NAME: frontend-localized-build-r2-test
+
+  TRANSLATION_VERSION: ${{ vars.TRANSLATION_VERSION || 'version-1' }}
+  R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+  R2_BUCKET: ${{ vars.R2_BUCKET }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: auto
+
+  CLOUDFLARE_PAGES_PROJECT: translation-platform-frontend
+  CLOUDFLARE_PREVIEW_BRANCH: task5-translation-storage
+
+jobs:
+  build-test-deploy:
+    name: Validate, build and deploy R2 translations
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: FrontendApp/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: FrontendApp
+        run: npm ci
+
+      - name: Audit npm dependencies
+        working-directory: FrontendApp
+        run: npm audit --audit-level=high
+
+      - name: Run Angular unit tests
+        working-directory: FrontendApp
+        run: npm test -- --watch=false
+
+      - name: Extract current Angular i18n messages
+        working-directory: FrontendApp
+        run: npm run extract-i18n
+
+      - name: Verify source XLIFF is committed and up to date
+        working-directory: FrontendApp
+        run: |
+          git diff \
+            --exit-code \
+            --ignore-matching-lines='context-type="linenumber"' \
+            -- src/locale/messages.xlf
+
+      - name: Install AWS CLI
+        run: python3 -m pip install awscli
+
+      - name: Check R2 configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${TRANSLATION_VERSION:?Missing repository variable: TRANSLATION_VERSION}"
+          : "${R2_ENDPOINT:?Missing repository variable: R2_ENDPOINT}"
+          : "${R2_BUCKET:?Missing repository variable: R2_BUCKET}"
+          : "${AWS_ACCESS_KEY_ID:?Missing repository secret: R2_ACCESS_KEY_ID}"
+          : "${AWS_SECRET_ACCESS_KEY:?Missing repository secret: R2_SECRET_ACCESS_KEY}"
+
+          echo "Selected translation version: ${TRANSLATION_VERSION}"
+          echo "R2 bucket: ${R2_BUCKET}"
+
+      - name: Download selected translation version from R2
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf /tmp/selected-translations
+          mkdir -p /tmp/selected-translations
+
+          for file in messages.xlf messages.fr.xlf messages.de.xlf; do
+            aws s3 cp \
+              "s3://${R2_BUCKET}/translations/${TRANSLATION_VERSION}/${file}" \
+              "/tmp/selected-translations/${file}" \
+              --endpoint-url "${R2_ENDPOINT}"
+          done
+
+          ls -lh /tmp/selected-translations
+
+      - name: Validate compatibility and install selected translations
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import shutil
+          import sys
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          current_source = Path("FrontendApp/src/locale/messages.xlf")
+          stored_dir = Path("/tmp/selected-translations")
+          stored_source = stored_dir / "messages.xlf"
+          stored_fr = stored_dir / "messages.fr.xlf"
+          stored_de = stored_dir / "messages.de.xlf"
+
+          def local(tag: str) -> str:
+              return tag.rsplit("}", 1)[-1]
+
+          def parse(path: Path) -> ET.Element:
+              if not path.is_file() or path.stat().st_size == 0:
+                  print(f"::error::Missing or empty XLIFF file: {path}")
+                  sys.exit(1)
+              try:
+                  root = ET.parse(path).getroot()
+              except ET.ParseError as error:
+                  print(f"::error::Invalid XML in {path}: {error}")
+                  sys.exit(1)
+              if local(root.tag) != "xliff" or root.attrib.get("version") != "1.2":
+                  print(f"::error::{path} must be an XLIFF 1.2 document")
+                  sys.exit(1)
+              return root
+
+          def child(element: ET.Element, name: str) -> ET.Element | None:
+              return next((c for c in element if local(c.tag) == name), None)
+
+          def canonical(element: ET.Element):
+              return (
+                  local(element.tag),
+                  tuple(sorted(element.attrib.items())),
+                  element.text or "",
+                  tuple((canonical(c), c.tail or "") for c in element),
+              )
+
+          def source_units(root: ET.Element, path: Path):
+              result = {}
+              for unit in root.iter():
+                  if local(unit.tag) != "trans-unit":
+                      continue
+                  unit_id = unit.attrib.get("id")
+                  source = child(unit, "source")
+                  if not unit_id or source is None:
+                      print(f"::error::Invalid trans-unit in {path}")
+                      sys.exit(1)
+                  if unit_id in result:
+                      print(f"::error::Duplicate trans-unit {unit_id} in {path}")
+                      sys.exit(1)
+                  result[unit_id] = canonical(source)
+              if not result:
+                  print(f"::error::No translation units in {path}")
+                  sys.exit(1)
+              return result
+
+          current_root = parse(current_source)
+          stored_root = parse(stored_source)
+          current_units = source_units(current_root, current_source)
+          stored_units = source_units(stored_root, stored_source)
+
+          if current_units != stored_units:
+              print(
+                  "::error::The selected R2 version was generated from a "
+                  "different messages.xlf."
+              )
+              sys.exit(1)
+
+          print("Stored messages.xlf matches the current Angular source.")
+
+          for target_path in (stored_fr, stored_de):
+              target_root = parse(target_path)
+              target_units = source_units(target_root, target_path)
+
+              if set(target_units) != set(current_units):
+                  print(
+                      f"::error::{target_path} does not contain the same "
+                      "translation-unit IDs as messages.xlf"
+                  )
+                  sys.exit(1)
+
+              for unit in target_root.iter():
+                  if local(unit.tag) != "trans-unit":
+                      continue
+                  target = child(unit, "target")
+                  has_content = (
+                      target is not None
+                      and (
+                          bool("".join(target.itertext()).strip())
+                          or len(target) > 0
+                      )
+                  )
+                  if not has_content:
+                      print(
+                          f"::error::Empty or missing target for unit "
+                          f"{unit.attrib.get('id')} in {target_path}"
+                      )
+                      sys.exit(1)
+
+              print(f"Valid translated XLIFF: {target_path}")
+
+          destination = Path("FrontendApp/src/locale")
+          shutil.copy2(stored_fr, destination / "messages.fr.xlf")
+          shutil.copy2(stored_de, destination / "messages.de.xlf")
+          print("Installed selected French and German translations.")
+          PY
+
+          printf '%s\n' "${TRANSLATION_VERSION}" \
+            > FrontendApp/.translation-version
+
+          sha256sum \
+            FrontendApp/src/locale/messages.xlf \
+            FrontendApp/src/locale/messages.fr.xlf \
+            FrontendApp/src/locale/messages.de.xlf
+
+      - name: Build localized frontend
+        working-directory: FrontendApp
+        run: npm run build:localized
+
+      - name: Upload localized frontend artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: |
+            FrontendApp/dist/FrontendApp/browser
+            FrontendApp/.translation-version
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Build Docker image with selected translations
+        run: |
+          docker build \
+            --file FrontendApp/Dockerfile \
+            --tag "${IMAGE_NAME}" \
+            FrontendApp
+
+      - name: Start Docker container
+        run: |
+          docker run \
+            --detach \
+            --name frontend-r2-e2e \
+            --publish 8080:8080 \
+            "${IMAGE_NAME}"
+
+      - name: Test container and localized routes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8080/health > /dev/null; then
+              echo "Container is healthy."
+              break
+            fi
+
+            if [ "${attempt}" -eq 30 ]; then
+              echo "::error::Container did not become healthy."
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          test "$(curl --fail --silent http://127.0.0.1:8080/health)" = "ok"
+
+          for route in "/" "/fr/" "/de/"; do
+            status_code="$(
+              curl \
+                --silent \
+                --show-error \
+                --location \
+                --output /dev/null \
+                --write-out "%{http_code}" \
+                "http://127.0.0.1:8080${route}"
+            )"
+
+            echo "${route} returned HTTP ${status_code}"
+
+            if [ "${status_code}" -lt 200 ] || [ "${status_code}" -ge 400 ]; then
+              echo "::error::Route ${route} returned HTTP ${status_code}"
+              exit 1
+            fi
+          done
+
+      - name: Verify container security headers
+        shell: bash
+        run: |
+          curl \
+            --fail \
+            --silent \
+            --dump-header response-headers.txt \
+            --output /dev/null \
+            http://127.0.0.1:8080/
+
+          grep --ignore-case "^X-Content-Type-Options: nosniff" response-headers.txt
+          grep --ignore-case "^X-Frame-Options: DENY" response-headers.txt
+          grep --ignore-case "^Content-Security-Policy:" response-headers.txt
+
+    
+      - name: Check Cloudflare configuration
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          : "${CLOUDFLARE_API_TOKEN:?Missing secret: CLOUDFLARE_API_TOKEN}"
+          : "${CLOUDFLARE_ACCOUNT_ID:?Missing secret: CLOUDFLARE_ACCOUNT_ID}"
+
+      - name: Deploy Task 5 preview to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: >-
+            pages deploy FrontendApp/dist/FrontendApp/browser
+            --project-name=${{ env.CLOUDFLARE_PAGES_PROJECT }}
+            --branch=${{ env.CLOUDFLARE_PREVIEW_BRANCH }}
+          gitHubToken: ${{ github.token }}
+
+      - name: Resolve preview deployment URL
+        id: deployment
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          DEPLOYMENT_ALIAS_URL: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+        run: |
+          set -euo pipefail
+
+          url="${DEPLOYMENT_URL}"
+          if [ -z "${url}" ]; then
+            url="${DEPLOYMENT_ALIAS_URL}"
+          fi
+          if [ -z "${url}" ]; then
+            echo "::error::Cloudflare did not return a deployment URL."
+            exit 1
+          fi
+
+          url="${url%/}"
+          echo "url=${url}" >> "${GITHUB_OUTPUT}"
+          echo "Preview deployment URL: ${url}"
+
+      - name: Run preview deployment smoke tests
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
+        run: |
+          set -euo pipefail
+
+          for route in "/" "/fr/" "/de/"; do
+            deployed=false
+
+            for attempt in {1..10}; do
+              status_code="$(
+                curl \
+                  --silent \
+                  --show-error \
+                  --location \
+                  --output /dev/null \
+                  --write-out "%{http_code}" \
+                  "${DEPLOYMENT_URL}${route}" || true
+              )"
+
+              echo "Attempt ${attempt}: ${route} returned HTTP ${status_code}"
+
+              if [[ "${status_code}" =~ ^[0-9]{3}$ ]] &&
+                 [ "${status_code}" -ge 200 ] &&
+                 [ "${status_code}" -lt 400 ]; then
+                deployed=true
+                break
+              fi
+
+              sleep 3
+            done
+
+            if [ "${deployed}" != "true" ]; then
+              echo "::error::Smoke test failed for ${route}"
+              exit 1
+            fi
+          done
+
+      - name: Write workflow summary
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
+        run: |
+          {
+            echo "## Task 5 R2 end-to-end test"
+            echo ""
+            echo "| Property | Value |"
+            echo "| --- | --- |"
+            echo "| Source branch | ${GITHUB_REF_NAME} |"
+            echo "| Source commit | ${GITHUB_SHA} |"
+            echo "| Translation version | ${TRANSLATION_VERSION} |"
+            echo "| R2 bucket | ${R2_BUCKET} |"
+            echo "| Cloudflare preview branch | ${CLOUDFLARE_PREVIEW_BRANCH} |"
+            echo "| Artifact | ${ARTIFACT_NAME} |"
+            echo "| Preview URL | ${DEPLOYMENT_URL} |"
+          } >> "${GITHUB_STEP_SUMMARY}"
