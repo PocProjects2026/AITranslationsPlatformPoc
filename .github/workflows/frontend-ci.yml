@@ -9,7 +9,7 @@ on:
       - "FrontendApp/**"
       - ".github/workflows/frontend-ci.yml"
       - ".github/workflows/frontend-cd.yml"
-
+    
   push:
     branches:
       - develop
@@ -21,6 +21,13 @@ on:
       - ".github/workflows/frontend-cd.yml"
 
   workflow_dispatch:
+    inputs:
+      translation_version:
+       description: "Version R2 à construire, par exemple version-1"
+       required: false
+       default: ""
+       type: string
+ 
 
 permissions:
   contents: read
@@ -33,6 +40,15 @@ env:
   NODE_VERSION: "24.16.0"
   IMAGE_NAME: translation-platform-frontend:${{ github.sha }}
   ARTIFACT_NAME: frontend-localized-build
+
+  TRANSLATION_VERSION: ${{ github.event.inputs.translation_version || vars.TRANSLATION_VERSION || 'version-1' }}
+
+  R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+  R2_BUCKET: ${{ vars.R2_BUCKET }}
+
+  AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: auto
 
 jobs:
   frontend-quality:
@@ -78,6 +94,119 @@ jobs:
             --exit-code \
             --ignore-matching-lines='context-type="linenumber"' \
             -- src/locale/messages.xlf
+      
+
+      - name: Install AWS CLI
+        run: python3 -m pip install awscli
+
+      - name: Download selected translation version from R2
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${TRANSLATION_VERSION:?Missing translation version}"
+          : "${R2_ENDPOINT:?Missing R2 endpoint}"
+          : "${R2_BUCKET:?Missing R2 bucket}"
+
+          rm -rf /tmp/selected-translations
+          mkdir -p /tmp/selected-translations
+
+          for file in messages.xlf messages.fr.xlf messages.de.xlf; do
+            aws s3 cp \
+              "s3://${R2_BUCKET}/translations/${TRANSLATION_VERSION}/${file}" \
+              "/tmp/selected-translations/${file}" \
+              --endpoint-url "${R2_ENDPOINT}"
+          done
+
+          ls -lh /tmp/selected-translations
+      
+
+      
+      - name: Verify selected translation source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+          import xml.etree.ElementTree as ET
+
+          current_path = Path("src/locale/messages.xlf")
+          stored_path = Path("/tmp/selected-translations/messages.xlf")
+
+          def local_name(tag):
+              return tag.rsplit("}", 1)[-1]
+
+          def source_units(path):
+              try:
+                  root = ET.parse(path).getroot()
+              except ET.ParseError as error:
+                  print(f"::error::Invalid XML in {path}: {error}")
+                  sys.exit(1)
+
+              units = {}
+
+              for element in root.iter():
+                  if local_name(element.tag) != "trans-unit":
+                      continue
+
+                  unit_id = element.attrib.get("id")
+                  source = next(
+                      (
+                          child
+                          for child in element
+                          if local_name(child.tag) == "source"
+                      ),
+                      None,
+                  )
+
+                  if not unit_id or source is None:
+                      print(f"::error::Invalid translation unit in {path}")
+                      sys.exit(1)
+
+                  units[unit_id] = ET.tostring(
+                      source,
+                      encoding="unicode",
+                  )
+
+              return units
+
+          current_units = source_units(current_path)
+          stored_units = source_units(stored_path)
+
+          if current_units != stored_units:
+              print(
+                  "::error::The selected R2 translation version "
+                  "was generated from another messages.xlf."
+              )
+              sys.exit(1)
+
+          print("Stored messages.xlf matches the Angular source.")
+          PY
+
+      
+      - name: Install selected translations
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cp \
+            /tmp/selected-translations/messages.fr.xlf \
+            src/locale/messages.fr.xlf
+
+          cp \
+            /tmp/selected-translations/messages.de.xlf \
+            src/locale/messages.de.xlf
+
+          echo "Installed translation version: ${TRANSLATION_VERSION}"
+
+          sha256sum \
+            src/locale/messages.xlf \
+            src/locale/messages.fr.xlf \
+            src/locale/messages.de.xlf
+
+
 
       - name: Validate XLIFF files
         shell: bash
@@ -118,6 +247,14 @@ jobs:
       - name: Build localized frontend
         run: npm run build:localized
 
+
+      - name: Record translation version in build
+        run: |
+          printf '%s\n' "${TRANSLATION_VERSION}" \
+            > dist/FrontendApp/browser/translation-version.txt
+
+          echo "Artifact translation version: ${TRANSLATION_VERSION}"
+
       - name: Upload localized frontend artifact
         uses: actions/upload-artifact@v6
         with:
@@ -135,6 +272,34 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+        
+      - name: Install AWS CLI
+        run: python3 -m pip install awscli
+
+      - name: Download selected translations for Docker
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p /tmp/docker-translations
+
+          for file in messages.xlf messages.fr.xlf messages.de.xlf; do
+            aws s3 cp \
+              "s3://${R2_BUCKET}/translations/${TRANSLATION_VERSION}/${file}" \
+              "/tmp/docker-translations/${file}" \
+              --endpoint-url "${R2_ENDPOINT}"
+          done
+
+          cp \
+            /tmp/docker-translations/messages.fr.xlf \
+            FrontendApp/src/locale/messages.fr.xlf
+
+          cp \
+            /tmp/docker-translations/messages.de.xlf \
+            FrontendApp/src/locale/messages.de.xlf
+
+          echo "Docker will use translation version: ${TRANSLATION_VERSION}"
 
       - name: Build Docker image
         run: |
