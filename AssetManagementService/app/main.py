@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 
 app = FastAPI(
-    title="Report Generation Service",
+    title="Asset Management Service",
     version="0.1.0",
 )
 

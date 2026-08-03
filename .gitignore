@@ -2,7 +2,8 @@
 .DS_Store
 Thumbs.db
 # python local files
-ReportGenerationService/.venv/
-ReportGenerationService/.pytest_cache/
-ReportGenerationService/**/__pycache__/
-ReportGenerationService/**/*.pyc
+AssetManagementService/.venv/
+AssetManagementService/.pytest_cache/
+AssetManagementService/**/__pycache__/
+AssetManagementService/**/*.pyc
+AssetManagementService/generated-reports/
