@@ -1,21 +1,65 @@
+import json
 from pathlib import Path
 
 from app.services.pdf_generator import generate_sample_pdf
 
+SUPPORTED_LANGUAGES = {"en", "fr", "de"}
 
-# Représente la racine du dossier AssetManagementService.
+LANGUAGE = "de"
+
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 
-# Définit l'emplacement du PDF qui sera généré.
+TRANSLATION_FILE = (
+    SERVICE_ROOT
+    / "app"
+    / "translations"
+    / f"messages.{LANGUAGE}.json"
+)
+
 OUTPUT_FILE = (
     SERVICE_ROOT
     / "generated-reports"
-    / "sample-report.pdf"
+    / f"sample-report-{LANGUAGE}.pdf"
 )
 
 
 def main() -> None:
-    generated_file = generate_sample_pdf(OUTPUT_FILE)
+    if LANGUAGE not in SUPPORTED_LANGUAGES:
+        raise ValueError(
+            f"Unsupported language: {LANGUAGE}. "
+            f"Supported languages: en, fr, de."
+        )
+    with TRANSLATION_FILE.open(
+        mode="r",
+        encoding="utf-8",
+    ) as translation_file:
+        translations = json.load(translation_file)
+
+    report_title = translations[
+        "asset-management-report-title"
+    ]
+    report_description = translations[
+    "asset-management-report-description"
+]
+    
+    report_description = translations[
+    "asset-management-report-description"
+    ]
+
+    total_assets_label = translations[
+    "asset-management-total-assets"
+    ]
+    asset_management_status = translations[
+     "asset-management-status-completed"   
+    ]
+    generated_file = generate_sample_pdf(
+        output_path=OUTPUT_FILE,
+        report_title=report_title,
+        description=report_description,
+        total_assets_label=total_assets_label,
+        total_assets=7,
+        asset_management_status = asset_management_status
+    )
 
     print(
         f"PDF generated successfully: "

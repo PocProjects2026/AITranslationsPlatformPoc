@@ -1,0 +1,7 @@
+{
+  "asset-management-report-title": "Bericht zur Anlagenverwaltung",
+  "asset-management-report-description": "Dieser Bericht wurde vom Backend-Dienst erstellt.",
+  "asset-management-total-assets": "Gesamtzahl der Anlagen",
+  "asset-management-status": "Status",
+  "asset-management-status-completed": "Abgeschlossen"
+}
