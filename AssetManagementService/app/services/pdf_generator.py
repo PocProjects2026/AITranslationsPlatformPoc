@@ -4,7 +4,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen.canvas import Canvas
 
 
-def generate_sample_pdf(
+def generate_asset_management_report(
     output_path: Path,
     report_title: str,
     report_description: str,

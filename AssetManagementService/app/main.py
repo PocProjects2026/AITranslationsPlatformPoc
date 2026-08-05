@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from app.services.pdf_generator import generate_sample_pdf
+from app.services.pdf_generator import generate_asset_management_report
 from app.services.translation_loader import load_translations
 
 
@@ -47,7 +47,7 @@ def create_report(request: ReportRequest) -> FileResponse:
         / f"asset-management-report-{request.language}.pdf"
     )
 
-    generated_file = generate_sample_pdf(
+    generated_file = generate_asset_management_report(
         output_path=output_file,
         report_title=translations[
             "asset-management-report-title"

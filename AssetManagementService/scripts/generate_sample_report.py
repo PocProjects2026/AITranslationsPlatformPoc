@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from app.services.pdf_generator import generate_sample_pdf
+from app.services.pdf_generator import generate_asset_management_report
 
 SUPPORTED_LANGUAGES = {"en", "fr", "de"}
 
@@ -34,32 +34,28 @@ def main() -> None:
         encoding="utf-8",
     ) as translation_file:
         translations = json.load(translation_file)
-
-    report_title = translations[
-        "asset-management-report-title"
-    ]
-    report_description = translations[
-    "asset-management-report-description"
-]
+  
     
-    report_description = translations[
-    "asset-management-report-description"
-    ]
-
-    total_assets_label = translations[
-    "asset-management-total-assets"
-    ]
-    asset_management_status = translations[
-     "asset-management-status-completed"   
-    ]
-    generated_file = generate_sample_pdf(
-        output_path=OUTPUT_FILE,
-        report_title=report_title,
-        description=report_description,
-        total_assets_label=total_assets_label,
-        total_assets=7,
-        asset_management_status = asset_management_status
-    )
+        generated_file = generate_asset_management_report(
+            output_path=OUTPUT_FILE,
+            report_title=translations[
+                "asset-management-report-title"
+            ],
+            report_description=translations[
+                "asset-management-report-description"
+            ],
+            total_assets_label=translations[
+                "asset-management-total-assets"
+            ],
+            total_assets=3,
+            status_label=translations[
+                "asset-management-status"
+            ],
+            completed_status=translations[
+                "asset-management-status-completed"
+            ],
+)
+    
 
     print(
         f"PDF generated successfully: "
