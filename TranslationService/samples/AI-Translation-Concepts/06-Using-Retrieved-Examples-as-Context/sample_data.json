@@ -1,0 +1,34 @@
+{
+  "query": "The battery is running low. Please connect to the charger.",
+  "language_target": "French",
+  "historical_translations": [
+    {
+      "english": "Battery level is low.",
+      "french": "Le niveau de la batterie est faible."
+    },
+    {
+      "english": "Please connect the charger.",
+      "french": "Veuillez brancher le chargeur."
+    },
+    {
+      "english": "Device battery is almost empty.",
+      "french": "La batterie de l'appareil est presque vide."
+    },
+    {
+      "english": "Your subscription has expired.",
+      "french": "Votre abonnement a expiré."
+    },
+    {
+      "english": "Connection lost.",
+      "french": "Connexion perdue."
+    },
+    {
+      "english": "Connect to the network to continue.",
+      "french": "Connectez-vous au réseau pour continuer."
+    },
+    {
+      "english": "Low power mode enabled.",
+      "french": "Mode économie d'énergie activé."
+    }
+  ]
+}

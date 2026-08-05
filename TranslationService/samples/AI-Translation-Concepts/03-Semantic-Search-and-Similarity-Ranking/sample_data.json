@@ -1,0 +1,13 @@
+{
+  "query": "I can't log in to my account.",
+  "messages": [
+    "Unable to access user account.",
+    "The package has been successfully delivered.",
+    "Please update your billing information.",
+    "Password reset instructions have been sent.",
+    "Your payment was declined by the bank.",
+    "Account login failed due to incorrect credentials.",
+    "The server is currently down for maintenance.",
+    "Welcome to the platform, your registration is complete."
+  ]
+}
