@@ -71,7 +71,7 @@ def create_report(request: ReportRequest) -> FileResponse:
         path=generated_file,
         media_type="application/pdf",
         filename=(
-            f"asset-management-report-"
+            f"asset-management-report-description"
             f"{request.language}.pdf"
         ),
     )
