@@ -1,5 +1,6 @@
 using System.Globalization;
 using InventoryService.Contracts;
+using InventoryService.Translation;
 using PdfSharp.Drawing;
 using PdfSharp.Drawing.Layout;
 using PdfSharp.Pdf;
@@ -10,13 +11,20 @@ public sealed class InventorySummaryPdfGenerator : IInventorySummaryPdfGenerator
 {
     private const double PageMargin = 48;
     private const double RowHeight = 24;
+    private readonly ITranslationCatalog _translations;
 
-    public byte[] Generate(GenerateInventorySummaryRequest request, DateTimeOffset generatedAt)
+    public InventorySummaryPdfGenerator(ITranslationCatalog translations)
+    {
+        _translations = translations;
+    }
+
+    public byte[] Generate(GenerateInventorySummaryRequest request, DateTimeOffset generatedAt, string locale)
     {
         ArgumentNullException.ThrowIfNull(request.Items);
+        var culture = CultureInfo.GetCultureInfo(locale);
 
         using var document = new PdfDocument();
-        document.Info.Title = $"Inventory summary {request.ReportId}";
+        document.Info.Title = $"{_translations.Get(locale, "inventory.title")} {request.ReportId}";
         document.Info.Author = "InventoryService";
 
         var page = document.AddPage();
@@ -29,26 +37,26 @@ public sealed class InventorySummaryPdfGenerator : IInventorySummaryPdfGenerator
         var mutedFont = new XFont("Inventory", 8, XFontStyleEx.Regular);
 
         graphics.DrawString(
-            "Inventory summary",
+            _translations.Get(locale, "inventory.title"),
             titleFont,
             XBrushes.Black,
             new XRect(PageMargin, 45, page.Width.Point - (2 * PageMargin), 30),
             XStringFormats.TopLeft);
 
         graphics.DrawString(
-            $"Report: {request.ReportId}",
+            $"{_translations.Get(locale, "inventory.report")}: {request.ReportId}",
             bodyFont,
             XBrushes.Black,
             PageMargin,
             95);
         graphics.DrawString(
-            $"Warehouse: {request.WarehouseName}",
+            $"{_translations.Get(locale, "inventory.warehouse")}: {request.WarehouseName}",
             bodyFont,
             XBrushes.Black,
             PageMargin,
             112);
         graphics.DrawString(
-            $"Generated: {generatedAt:yyyy-MM-dd HH:mm:ss zzz}",
+            $"{_translations.Get(locale, "inventory.generated")}: {generatedAt.ToString("g", culture)}",
             bodyFont,
             XBrushes.Black,
             PageMargin,
@@ -60,9 +68,33 @@ public sealed class InventorySummaryPdfGenerator : IInventorySummaryPdfGenerator
         const double quantityWidth = 120;
         var tableWidth = skuWidth + nameWidth + quantityWidth;
 
-        DrawCell(graphics, formatter, "SKU", headingFont, PageMargin, tableTop, skuWidth, XBrushes.LightGray);
-        DrawCell(graphics, formatter, "Item", headingFont, PageMargin + skuWidth, tableTop, nameWidth, XBrushes.LightGray);
-        DrawCell(graphics, formatter, "Quantity", headingFont, PageMargin + skuWidth + nameWidth, tableTop, quantityWidth, XBrushes.LightGray);
+        DrawCell(
+            graphics,
+            formatter,
+            _translations.Get(locale, "inventory.sku"),
+            headingFont,
+            PageMargin,
+            tableTop,
+            skuWidth,
+            XBrushes.LightGray);
+        DrawCell(
+            graphics,
+            formatter,
+            _translations.Get(locale, "inventory.item"),
+            headingFont,
+            PageMargin + skuWidth,
+            tableTop,
+            nameWidth,
+            XBrushes.LightGray);
+        DrawCell(
+            graphics,
+            formatter,
+            _translations.Get(locale, "inventory.quantity"),
+            headingFont,
+            PageMargin + skuWidth + nameWidth,
+            tableTop,
+            quantityWidth,
+            XBrushes.LightGray);
 
         for (var index = 0; index < request.Items.Count; index++)
         {
@@ -75,7 +107,7 @@ public sealed class InventorySummaryPdfGenerator : IInventorySummaryPdfGenerator
             DrawCell(
                 graphics,
                 formatter,
-                $"{item.Quantity.ToString("0.##", CultureInfo.InvariantCulture)} {item.Unit}",
+                $"{item.Quantity.ToString("0.##", culture)} {item.Unit}",
                 bodyFont,
                 PageMargin + skuWidth + nameWidth,
                 top,
@@ -86,7 +118,7 @@ public sealed class InventorySummaryPdfGenerator : IInventorySummaryPdfGenerator
         var tableBottom = tableTop + ((request.Items.Count + 1) * RowHeight);
         graphics.DrawLine(XPens.Black, PageMargin, tableBottom, PageMargin + tableWidth, tableBottom);
         graphics.DrawString(
-            $"{request.Items.Count} item(s)",
+            $"{request.Items.Count} {_translations.Get(locale, "inventory.itemCount")}",
             mutedFont,
             XBrushes.DimGray,
             new XRect(PageMargin, tableBottom + 14, tableWidth, 20),
@@ -112,4 +144,3 @@ public sealed class InventorySummaryPdfGenerator : IInventorySummaryPdfGenerator
         formatter.DrawString(text, font, XBrushes.Black, new XRect(left + 5, top + 6, width - 10, RowHeight - 8));
     }
 }
-

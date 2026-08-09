@@ -4,6 +4,5 @@ namespace InventoryService.Reports;
 
 public interface IInventorySummaryPdfGenerator
 {
-    byte[] Generate(GenerateInventorySummaryRequest request, DateTimeOffset generatedAt);
+    byte[] Generate(GenerateInventorySummaryRequest request, DateTimeOffset generatedAt, string locale);
 }
-

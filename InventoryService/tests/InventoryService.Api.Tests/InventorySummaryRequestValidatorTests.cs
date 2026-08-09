@@ -11,6 +11,7 @@ public sealed class InventorySummaryRequestValidatorTests
         var request = new GenerateInventorySummaryRequest(
             "INV-001",
             "Casablanca Warehouse",
+            "en",
             [new InventoryItemRequest("PAPER-A4", "A4 paper", 120, "boxes")],
             null);
 
@@ -25,6 +26,7 @@ public sealed class InventorySummaryRequestValidatorTests
         var request = new GenerateInventorySummaryRequest(
             "INV-001",
             "Casablanca Warehouse",
+            "en",
             [new InventoryItemRequest("PAPER-A4", "A4 paper", -1, "boxes")],
             null);
 

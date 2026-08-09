@@ -12,6 +12,7 @@ public static class InventorySummaryRequestValidator
 
         ValidateRequiredLength(request.ReportId, nameof(request.ReportId), 80, errors);
         ValidateRequiredLength(request.WarehouseName, nameof(request.WarehouseName), 120, errors);
+        ValidateRequiredLength(request.Locale, nameof(request.Locale), 20, errors);
 
         if (request.Items is null || request.Items.Count == 0)
         {
@@ -56,4 +57,3 @@ public static class InventorySummaryRequestValidator
         }
     }
 }
-

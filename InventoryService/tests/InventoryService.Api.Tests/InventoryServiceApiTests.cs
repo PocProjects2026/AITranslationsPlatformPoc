@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using InventoryService.Contracts;
 using Microsoft.AspNetCore.Mvc.Testing;
+using PdfSharp.Pdf.IO;
 
 namespace InventoryService.Api.Tests;
 
@@ -57,8 +58,35 @@ public sealed class InventoryServiceApiTests : IClassFixture<WebApplicationFacto
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
-        Assert.Equal("inventory-summary-INV-001.pdf", response.Content.Headers.ContentDisposition?.FileNameStar);
+        Assert.Equal("inventory-summary-INV-001.en.pdf", response.Content.Headers.ContentDisposition?.FileNameStar);
+        Assert.Contains("en", response.Content.Headers.ContentLanguage);
         Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(content, 0, 5));
+    }
+
+    [Fact]
+    public async Task GenerateInventorySummary_WithFrenchLocale_ReturnsLocalizedPdf()
+    {
+        var request = CreateValidRequest() with { Locale = "fr-FR" };
+
+        using var response = await _client.PostAsJsonAsync("/api/reports/inventory-summary", request);
+        var content = await response.Content.ReadAsByteArrayAsync();
+        using var document = PdfReader.Open(new MemoryStream(content), PdfDocumentOpenMode.Import);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("inventory-summary-INV-001.fr.pdf", response.Content.Headers.ContentDisposition?.FileNameStar);
+        Assert.Contains("fr", response.Content.Headers.ContentLanguage);
+        Assert.Equal("Résumé de l'inventaire INV-001", document.Info.Title);
+    }
+
+    [Fact]
+    public async Task GenerateInventorySummary_WithUnsupportedLocale_ReturnsValidationProblem()
+    {
+        var request = CreateValidRequest() with { Locale = "es" };
+
+        using var response = await _client.PostAsJsonAsync("/api/reports/inventory-summary", request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
     }
 
     [Fact]
@@ -76,6 +104,7 @@ public sealed class InventoryServiceApiTests : IClassFixture<WebApplicationFacto
         new(
             "INV-001",
             "Casablanca Warehouse",
+            "en",
             [
                 new InventoryItemRequest("PAPER-A4", "A4 paper", 120, "boxes"),
                 new InventoryItemRequest("TONER-BK", "Black toner", 8, "units")

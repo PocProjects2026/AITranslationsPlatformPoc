@@ -42,7 +42,7 @@ builder.Services.AddSingleton<ITranslationCatalog>(_ =>
 builder.Services.AddSingleton<IInventorySummaryPdfGenerator>(services =>
 {
     PdfFontBootstrapper.Initialize(services.GetRequiredService<IConfiguration>());
-    return new InventorySummaryPdfGenerator();
+    return new InventorySummaryPdfGenerator(services.GetRequiredService<ITranslationCatalog>());
 });
 
 var app = builder.Build();
@@ -69,8 +69,10 @@ app.MapPost(
         "/api/reports/inventory-summary",
         (GenerateInventorySummaryRequest request,
             IInventorySummaryPdfGenerator generator,
+            ITranslationCatalog translations,
             TimeProvider timeProvider,
-            IConfiguration configuration) =>
+            IConfiguration configuration,
+            HttpContext httpContext) =>
         {
             var errors = InventorySummaryRequestValidator.Validate(request);
             if (errors.Count > 0)
@@ -78,23 +80,35 @@ app.MapPost(
                 return Results.ValidationProblem(errors);
             }
 
+            if (!translations.TryResolveLocale(request.Locale!, out var locale))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(request.Locale)] =
+                    [$"Supported locales are: {string.Join(", ", translations.SupportedLocales)}."]
+                });
+            }
+
             var generatedAt = request.GeneratedAt ?? timeProvider.GetUtcNow();
-            var content = generator.Generate(request, generatedAt);
+            var content = generator.Generate(request, generatedAt, locale);
             var applicationVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
             var gitCommit = configuration["Application:GitCommit"] ?? "unknown";
             var safeReportId = Regex.Replace(request.ReportId!, "[^a-zA-Z0-9._-]", "-");
+            httpContext.Response.Headers.ContentLanguage = locale;
 
             app.Logger.LogInformation(
-                "Generated inventory summary {ReportId} with {ItemCount} items",
+                "Generated inventory summary {ReportId} in {Locale} with {ItemCount} items",
                 request.ReportId,
+                locale,
                 request.Items!.Count);
 
             return Results.File(
                 content,
                 "application/pdf",
-                fileDownloadName: $"inventory-summary-{safeReportId}.pdf",
+                fileDownloadName: $"inventory-summary-{safeReportId}.{locale}.pdf",
                 lastModified: generatedAt,
-                entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{applicationVersion}-{gitCommit}\""));
+                entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue(
+                    $"\"{applicationVersion}-{gitCommit}-{locale}\""));
         })
     .RequireRateLimiting("pdf-generation")
     .WithRequestTimeout("pdf-generation");
