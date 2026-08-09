@@ -36,6 +36,18 @@ public sealed class InventoryServiceApiTests : IClassFixture<WebApplicationFacto
     }
 
     [Fact]
+    public async Task Locales_ReturnsPackagedTranslationLocales()
+    {
+        using var response = await _client.GetAsync("/locales");
+        var content = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("\"de\"", content, StringComparison.Ordinal);
+        Assert.Contains("\"en\"", content, StringComparison.Ordinal);
+        Assert.Contains("\"fr\"", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GenerateInventorySummary_ReturnsPdf()
     {
         var request = CreateValidRequest();

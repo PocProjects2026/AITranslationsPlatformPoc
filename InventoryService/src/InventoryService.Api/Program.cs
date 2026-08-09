@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Threading.RateLimiting;
 using InventoryService.Contracts;
 using InventoryService.Reports;
+using InventoryService.Translation;
 using InventoryService.Validation;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
@@ -25,6 +26,19 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ITranslationCatalog>(_ =>
+{
+    var relativeDirectory = builder.Configuration["TranslationArtifacts:Directory"]
+        ?? throw new InvalidOperationException("TranslationArtifacts:Directory is required.");
+    var sourceLocale = builder.Configuration["TranslationArtifacts:SourceLocale"]
+        ?? throw new InvalidOperationException("TranslationArtifacts:SourceLocale is required.");
+    var supportedLocales = builder.Configuration
+        .GetSection("TranslationArtifacts:SupportedLocales")
+        .Get<string[]>() ?? throw new InvalidOperationException("TranslationArtifacts:SupportedLocales is required.");
+    var artifactDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, relativeDirectory));
+
+    return new JsonTranslationCatalog(artifactDirectory, sourceLocale, supportedLocales);
+});
 builder.Services.AddSingleton<IInventorySummaryPdfGenerator>(services =>
 {
     PdfFontBootstrapper.Initialize(services.GetRequiredService<IConfiguration>());
@@ -32,6 +46,8 @@ builder.Services.AddSingleton<IInventorySummaryPdfGenerator>(services =>
 });
 
 var app = builder.Build();
+
+_ = app.Services.GetRequiredService<ITranslationCatalog>();
 
 app.UseExceptionHandler();
 app.UseRequestTimeouts();
@@ -45,6 +61,9 @@ app.MapGet("/version", (IConfiguration configuration) =>
     var gitCommit = configuration["Application:GitCommit"] ?? "unknown";
     return TypedResults.Ok(new VersionResponse(applicationVersion, gitCommit));
 });
+
+app.MapGet("/locales", (ITranslationCatalog catalog) =>
+    TypedResults.Ok(new { locales = catalog.SupportedLocales }));
 
 app.MapPost(
         "/api/reports/inventory-summary",

@@ -1,0 +1,10 @@
+{
+  "inventory.generated": "Généré",
+  "inventory.item": "Article",
+  "inventory.itemCount": "article(s)",
+  "inventory.quantity": "Quantité",
+  "inventory.report": "Rapport",
+  "inventory.sku": "UGS",
+  "inventory.title": "Résumé de l'inventaire",
+  "inventory.warehouse": "Entrepôt"
+}
