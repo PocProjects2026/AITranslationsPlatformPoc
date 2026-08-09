@@ -1,3 +1,9 @@
 # Repository-wide local files
 .DS_Store
 Thumbs.db
+
+# IDE-specific state
+.vs/
+.vscode/
+**/.vs/
+**/.vscode/
