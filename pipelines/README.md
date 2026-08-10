@@ -30,6 +30,22 @@ Keep service-specific assumptions out of `scripts/common/`.
 The scripts fail immediately when a command or assertion fails. They do not publish an
 image, access secrets, or deploy infrastructure.
 
+## InventoryService container identity
+
+Development images will be stored in GitHub Container Registry:
+
+```text
+ghcr.io/pocprojects2026/ai-translations-inventory-service
+```
+
+Each published image will have:
+
+- a `git-<full-commit-sha>` tag that identifies its source code;
+- a Docker-generated `sha256:<digest>` that identifies the exact packaged image.
+
+Deployment and rollback will select the immutable digest. The Git tag is for source
+traceability. Moving tags such as `latest` and `develop` are not used.
+
 ## Run locally
 
 From the repository root:
