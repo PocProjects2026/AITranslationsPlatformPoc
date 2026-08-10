@@ -7,9 +7,9 @@ Adds the approved Git commit tag to a local container image.
 
 .DESCRIPTION
 Creates a second local name for an already-built image. The target name uses the
-registry repository and the full source commit in the form:
+registry repository, full source commit, and GitHub Actions execution in the form:
 
-    <registry-image>:git-<full-commit-sha>
+    <registry-image>:git-<full-commit-sha>-run-<run-id>-attempt-<run-attempt>
 
 This script does not authenticate to a registry or push the image.
 
@@ -21,6 +21,12 @@ Registry and image repository without a tag or digest.
 
 .PARAMETER GitCommit
 Full 40-character Git commit SHA used to build the image.
+
+.PARAMETER RunId
+Unique GitHub Actions workflow run ID.
+
+.PARAMETER RunAttempt
+Attempt number within the GitHub Actions workflow run.
 #>
 [CmdletBinding()]
 param(
@@ -31,7 +37,15 @@ param(
     [string] $RegistryImage,
 
     [Parameter(Mandatory = $true)]
-    [string] $GitCommit
+    [string] $GitCommit,
+
+    [Parameter(Mandatory = $true)]
+    [ValidateRange(1, 9223372036854775807)]
+    [long] $RunId,
+
+    [Parameter(Mandatory = $true)]
+    [ValidateRange(1, 2147483647)]
+    [int] $RunAttempt
 )
 
 $ErrorActionPreference = 'Stop'
@@ -55,7 +69,12 @@ if ($lastColon -gt $lastSlash) {
 }
 
 $normalizedCommit = $GitCommit.ToLowerInvariant()
-$targetImage = '{0}:git-{1}' -f $RegistryImage, $normalizedCommit
+$targetImage = '{0}:git-{1}-run-{2}-attempt-{3}' -f @(
+    $RegistryImage,
+    $normalizedCommit,
+    $RunId,
+    $RunAttempt
+)
 
 $sourceImageId = & docker image inspect $LocalImage --format '{{.Id}}'
 if ($LASTEXITCODE -ne 0) {

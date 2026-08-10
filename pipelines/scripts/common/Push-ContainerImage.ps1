@@ -69,8 +69,8 @@ if ($imageRepository -cne $imageRepository.ToLowerInvariant()) {
     throw 'The image repository must use lowercase characters.'
 }
 
-if ($imageTag -notmatch '^git-[0-9a-f]{40}$') {
-    throw 'Image must use a git-<full-commit-sha> tag.'
+if ($imageTag -notmatch '^git-[0-9a-f]{40}-run-[1-9][0-9]*-attempt-[1-9][0-9]*$') {
+    throw 'Image must use a git-<full-commit-sha>-run-<run-id>-attempt-<run-attempt> tag.'
 }
 
 $token = [Environment]::GetEnvironmentVariable($tokenVariableName, 'Process')

@@ -40,11 +40,13 @@ ghcr.io/pocprojects2026/ai-translations-inventory-service
 
 Each published image will have:
 
-- a `git-<full-commit-sha>` tag that identifies its source code;
+- a `git-<full-commit-sha>-run-<run-id>-attempt-<run-attempt>` tag that identifies
+  its source code and unique GitHub Actions execution;
 - a Docker-generated `sha256:<digest>` that identifies the exact packaged image.
 
 Deployment and rollback will select the immutable digest. The Git tag is for source
-traceability. Moving tags such as `latest` and `develop` are not used.
+and build traceability. Moving tags such as `latest` and `develop` are not used,
+and rerunning a workflow creates a new tag instead of overwriting an earlier build.
 
 The tagging operation is implemented by
 `scripts/common/Set-ContainerImageTag.ps1`. It only creates the registry-formatted
