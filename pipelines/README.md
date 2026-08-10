@@ -46,6 +46,10 @@ Each published image will have:
 Deployment and rollback will select the immutable digest. The Git tag is for source
 traceability. Moving tags such as `latest` and `develop` are not used.
 
+The tagging operation is implemented by
+`scripts/common/Set-ContainerImageTag.ps1`. It only creates the registry-formatted
+name locally. Authentication and publication remain separate operations.
+
 ## Run locally
 
 From the repository root:
