@@ -45,10 +45,14 @@ jobs:
     needs: dotnet
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
     env:
       IMAGE_NAME: inventory-service:develop-${{ github.run_id }}
       APP_VERSION: 0.1.0-develop.${{ github.run_number }}
       CONTAINER_NAME: inventory-service-develop-${{ github.run_id }}-${{ github.run_attempt }}
+      REGISTRY_IMAGE: ghcr.io/pocprojects2026/ai-translations-inventory-service
 
     steps:
       - name: Check out repository
@@ -73,3 +77,19 @@ jobs:
           -GitCommit $env:GITHUB_SHA
           -ContainerName $env:CONTAINER_NAME
           -HostPort 8080
+
+      - name: Publish image to GHCR
+        env:
+          CONTAINER_REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $taggedImage = & ./pipelines/scripts/common/Set-ContainerImageTag.ps1 `
+            -LocalImage $env:IMAGE_NAME `
+            -RegistryImage $env:REGISTRY_IMAGE `
+            -GitCommit $env:GITHUB_SHA `
+            -RunId $env:GITHUB_RUN_ID `
+            -RunAttempt $env:GITHUB_RUN_ATTEMPT
+
+          & ./pipelines/scripts/common/Push-ContainerImage.ps1 `
+            -Image $taggedImage `
+            -RegistryUsername $env:GITHUB_ACTOR
