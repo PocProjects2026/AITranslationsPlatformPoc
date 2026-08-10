@@ -50,6 +50,18 @@ The tagging operation is implemented by
 `scripts/common/Set-ContainerImageTag.ps1`. It only creates the registry-formatted
 name locally. Authentication and publication remain separate operations.
 
+## GHCR authentication contract
+
+- GitHub Actions publishes with its temporary `GITHUB_TOKEN`.
+- No personal access token or stored registry password is used.
+- Only the publishing job receives `contents: read` and `packages: write`.
+- Pull-request and feature jobs never receive `packages: write`.
+- The token is sent to `docker login` through standard input. It is not passed as a
+  command-line argument, written to a file, or accepted as a script parameter.
+- The publishing job logs out from `ghcr.io` during cleanup.
+- The first package is made public explicitly after publication because GHCR initially
+  creates container packages as private.
+
 ## Run locally
 
 From the repository root:
