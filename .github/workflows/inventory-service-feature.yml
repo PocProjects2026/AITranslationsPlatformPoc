@@ -1,0 +1,74 @@
+name: InventoryService - Feature CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - InventoryService/**
+      - pipelines/**
+      - .github/workflows/inventory-service-feature.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inventory-service-feature-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  dotnet:
+    name: Build and test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          global-json-file: InventoryService/global.json
+
+      - name: Validate .NET service
+        shell: pwsh
+        run: >
+          ./pipelines/scripts/common/Test-DotNetService.ps1
+          -ServicePath ./InventoryService
+          -SolutionFile InventoryService.sln
+
+  container:
+    name: Build and smoke-test image
+    needs: dotnet
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      IMAGE_NAME: inventory-service:feature-${{ github.run_id }}
+      APP_VERSION: 0.1.0-feature.${{ github.run_number }}
+      CONTAINER_NAME: inventory-service-feature-${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Build image
+        shell: pwsh
+        run: >
+          ./pipelines/scripts/common/Build-ContainerImage.ps1
+          -ContextPath ./InventoryService
+          -ImageName $env:IMAGE_NAME
+          -AppVersion $env:APP_VERSION
+          -GitCommit $env:GITHUB_SHA
+
+      - name: Test InventoryService container
+        shell: pwsh
+        run: >
+          ./pipelines/scripts/inventory-service/Test-InventoryServiceContainer.ps1
+          -ImageName $env:IMAGE_NAME
+          -GitCommit $env:GITHUB_SHA
+          -ContainerName $env:CONTAINER_NAME
+          -HostPort 8080
