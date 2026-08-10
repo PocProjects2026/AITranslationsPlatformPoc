@@ -1,0 +1,41 @@
+name: InventoryService - Development
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - InventoryService/**
+      - pipelines/**
+      - .github/workflows/inventory-service-develop.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inventory-service-development
+  cancel-in-progress: true
+
+jobs:
+  dotnet:
+    name: Build and test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          global-json-file: InventoryService/global.json
+
+      - name: Validate .NET service
+        shell: pwsh
+        run: >
+          ./pipelines/scripts/common/Test-DotNetService.ps1
+          -ServicePath ./InventoryService
+          -SolutionFile InventoryService.sln
