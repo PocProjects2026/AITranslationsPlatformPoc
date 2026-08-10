@@ -3,5 +3,8 @@
   "asset-management-report-description": "Dieser Bericht wurde vom Backend-Dienst erstellt.",
   "asset-management-total-assets": "Gesamtzahl der Anlagen",
   "asset-management-status": "Status",
-  "asset-management-status-completed": "Abgeschlossen"
+  "asset-management-status-completed": "Abgeschlossen",
+  "asset-management-assets": "Assets",
+  "asset-management-reference": "Referenz",
+  "asset-management-tags": "Tags"
 }
