@@ -8,22 +8,32 @@ from sqlalchemy.orm import sessionmaker
 from app.database import Base, get_db
 from app.main import app
 from app.models import Asset,Tag
-
+import os
 
 def test_report_uses_asset_count_from_database(
     tmp_path,
 ) -> None:
     database_file = (
-        tmp_path
-        / "integration-test.db"
+     tmp_path
+     / "integration-test.db"
     )
 
-    test_engine = create_engine(
+    test_database_url = os.getenv(
+        "TEST_DATABASE_URL",
         f"sqlite:///{database_file}",
-        connect_args={
-            "check_same_thread": False,
-        },
     )
+
+    connect_args = {}
+
+    if test_database_url.startswith("sqlite"):
+        connect_args = {
+        "check_same_thread": False,
+    }
+
+    test_engine = create_engine(
+    test_database_url,
+    connect_args=connect_args,
+        )
 
     TestSessionLocal = sessionmaker(
         bind=test_engine,

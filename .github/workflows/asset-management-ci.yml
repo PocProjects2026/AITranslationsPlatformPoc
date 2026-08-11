@@ -34,11 +34,28 @@ jobs:
   test:
     name: Download translations and run tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: asset_management
+          POSTGRES_USER: asset_user
+          POSTGRES_PASSWORD: asset_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U asset_user -d asset_management"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+       DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+       TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 
     defaults:
       run:
         working-directory: AssetManagementService
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -69,6 +86,9 @@ jobs:
           TRANSLATION_VERSION: ${{ vars.TRANSLATION_VERSION }}
           R2_TRANSLATION_PREFIX: ${{ vars.R2_TRANSLATION_PREFIX }}
         run: python -m scripts.download_translations_from_r2
+      
+      - name: Create database tables
+        run: python -m scripts.create_database
 
       - name: Run tests
         run: python -m pytest -q
