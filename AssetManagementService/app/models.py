@@ -58,6 +58,10 @@ class Asset(Base):
         secondary=asset_tags,
         back_populates="assets",
     )
+    owner: Mapped[str | None] = mapped_column(
+    String(100),
+    nullable=True,
+)
 
 
 class Tag(Base):

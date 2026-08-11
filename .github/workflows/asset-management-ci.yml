@@ -87,8 +87,8 @@ jobs:
           R2_TRANSLATION_PREFIX: ${{ vars.R2_TRANSLATION_PREFIX }}
         run: python -m scripts.download_translations_from_r2
       
-      - name: Create database tables
-        run: python -m scripts.create_database
-
+      - name: Apply database migrations
+        run: python -m alembic upgrade head
+        
       - name: Run tests
         run: python -m pytest -q
