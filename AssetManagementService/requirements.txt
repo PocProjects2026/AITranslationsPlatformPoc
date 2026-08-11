@@ -3,3 +3,4 @@ reportlab
 boto3
 pydantic-settings
 sqlalchemy
+psycopg[binary]
