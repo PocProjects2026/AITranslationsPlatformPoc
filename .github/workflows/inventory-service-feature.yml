@@ -1,4 +1,5 @@
-name: InventoryService - Feature CI
+name: InventoryService - Feature
+run-name: "InventoryService - Feature - PR #${{ github.event.pull_request.number }}"
 
 on:
   pull_request:
