@@ -1,9 +1,6 @@
-# Repository-wide local files
-.DS_Store
-Thumbs.db
-
-# IDE-specific state
-.vs/
-.vscode/
-**/.vs/
-**/.vscode/
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+*.pdf
+.env

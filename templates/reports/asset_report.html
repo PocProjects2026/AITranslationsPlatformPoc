@@ -1,0 +1,61 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8">
+    <title>{% trans "asset-report-title" %}</title>
+    <style>
+        body { font-family: sans-serif; color: #333; margin: 40px; }
+        h1, h2 { color: #0056b3; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f4f4f4; font-weight: bold; }
+        .summary p { margin: 5px 0; }
+        ul { list-style-type: square; }
+    </style>
+</head>
+<body>
+    <h1>{% trans "asset-report-title" %}</h1>
+    
+    <div class="summary">
+        <p><strong>{% trans "asset-report-date" %}:</strong> {{ report_date }}</p>
+        <p><strong>{% trans "asset-report-total-assets" %}:</strong> {{ total_assets }}</p>
+        <p><strong>{% trans "asset-report-total-valuation" %}:</strong> {{ total_valuation }}</p>
+    </div>
+
+    <h2>{% trans "asset-report-status-summary" %}</h2>
+    <ul>
+        {% for status_item in status_summary %}
+        <li>{{ status_item.status }}: {{ status_item.count }}</li>
+        {% empty %}
+        <li>{% trans "asset-report-no-data" %}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>{% trans "asset-report-asset-list" %}</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>{% trans "asset-report-name" %}</th>
+                <th>{% trans "asset-report-type" %}</th>
+                <th>{% trans "asset-report-status" %}</th>
+                <th>{% trans "asset-report-valuation" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asset in assets %}
+            <tr>
+                <td>{{ asset.name }}</td>
+                <td>{{ asset.asset_type }}</td>
+                <td>{{ asset.status }}</td>
+                <td>{{ asset.valuation }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center;">{% trans "asset-report-no-data" %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
