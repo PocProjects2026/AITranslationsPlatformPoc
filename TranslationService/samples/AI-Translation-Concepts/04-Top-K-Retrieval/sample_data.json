@@ -1,0 +1,17 @@
+{
+  "query": "How do I change my password?",
+  "messages": [
+    "Reset your account password.",
+    "Click here to change your login credentials.",
+    "Update your password in the security settings.",
+    "I forgot my password.",
+    "Your password has expired.",
+    "Please update your billing information.",
+    "Your payment was declined by the bank.",
+    "Account login failed due to incorrect credentials.",
+    "The server is currently down for maintenance.",
+    "Welcome to the platform, your registration is complete.",
+    "The package has been successfully delivered.",
+    "Your subscription will renew automatically."
+  ]
+}

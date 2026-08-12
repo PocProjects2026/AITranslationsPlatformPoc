@@ -1,0 +1,10 @@
+{
+  "exact_query": "The package has shipped.",
+  "semantic_query": "My order has already been sent.",
+  "canonical_records": [
+    "The package has shipped.",
+    "Your invoice is attached.",
+    "Please update your password.",
+    "Your account is temporarily suspended."
+  ]
+}

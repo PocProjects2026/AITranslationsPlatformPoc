@@ -1,0 +1,16 @@
+{
+  "messages": [
+    {
+      "id": "msg_001",
+      "english_text": "The package has been shipped and is on its way."
+    },
+    {
+      "id": "msg_002",
+      "english_text": "Please reset your password using the link sent to your email."
+    },
+    {
+      "id": "msg_003",
+      "english_text": "Your subscription will automatically renew on the 1st of next month."
+    }
+  ]
+}
