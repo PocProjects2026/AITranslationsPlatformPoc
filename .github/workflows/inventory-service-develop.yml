@@ -110,3 +110,59 @@ jobs:
             -RegistryUsername $env:GITHUB_ACTOR
 
           "image-reference=$imageReference" >> $env:GITHUB_OUTPUT
+
+  deploy-development:
+    name: Deploy to development
+    needs: container
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: development
+      url: ${{ vars.INVENTORY_SERVICE_URL }}
+    permissions:
+      contents: read
+    env:
+      IMAGE_REFERENCE: ${{ needs.container.outputs.image-reference }}
+      INVENTORY_SERVICE_URL: ${{ vars.INVENTORY_SERVICE_URL }}
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Start Render deployment
+        id: deploy
+        shell: pwsh
+        run: |
+          $deploymentId = & ./pipelines/scripts/common/Start-RenderImageDeployment.ps1 `
+            -ImageReference $env:IMAGE_REFERENCE
+
+          "deployment-id=$deploymentId" >> $env:GITHUB_OUTPUT
+
+      - name: Verify deployed version
+        shell: pwsh
+        run: >
+          ./pipelines/scripts/inventory-service/Test-InventoryServiceDeployment.ps1
+          -ServiceUrl $env:INVENTORY_SERVICE_URL
+          -GitCommit $env:GITHUB_SHA
+
+      - name: Record deployment
+        if: ${{ always() }}
+        shell: pwsh
+        env:
+          DEPLOYMENT_ID: ${{ steps.deploy.outputs.deployment-id }}
+        run: |
+          @"
+          ## InventoryService development deployment
+
+          | Property | Value |
+          | --- | --- |
+          | Service URL | $env:INVENTORY_SERVICE_URL |
+          | Application version | 0.1.0-develop.${{ github.run_number }} |
+          | Git commit | $env:GITHUB_SHA |
+          | Container image | $env:IMAGE_REFERENCE |
+          | Render deployment | $env:DEPLOYMENT_ID |
+          | Translation source | Packaged sample artifacts |
+          "@ >> $env:GITHUB_STEP_SUMMARY
