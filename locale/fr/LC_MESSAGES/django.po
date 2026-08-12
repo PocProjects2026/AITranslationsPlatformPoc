@@ -1,0 +1,45 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-09 17:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "asset-report-title"
+msgstr "Rapport de Gestion des Actifs"
+
+msgid "asset-report-date"
+msgstr "Date du Rapport"
+
+msgid "asset-report-total-assets"
+msgstr "Total des Actifs"
+
+msgid "asset-report-total-valuation"
+msgstr "Évaluation Totale"
+
+msgid "asset-report-status-summary"
+msgstr "Résumé des Statuts"
+
+msgid "asset-report-asset-list"
+msgstr "Liste des Actifs"
+
+msgid "asset-report-name"
+msgstr "Nom"
+
+msgid "asset-report-type"
+msgstr "Type"
+
+msgid "asset-report-status"
+msgstr "Statut"
+
+msgid "asset-report-valuation"
+msgstr "Évaluation"
+
+msgid "asset-report-no-data"
+msgstr "Aucune donnée disponible"
