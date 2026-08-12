@@ -46,6 +46,8 @@ jobs:
     needs: dotnet
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    outputs:
+      image-reference: ${{ steps.publish.outputs.image-reference }}
     permissions:
       contents: read
       packages: write
@@ -91,6 +93,7 @@ jobs:
           severity: HIGH,CRITICAL
 
       - name: Publish image to GHCR
+        id: publish
         env:
           CONTAINER_REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
@@ -102,6 +105,8 @@ jobs:
             -RunId $env:GITHUB_RUN_ID `
             -RunAttempt $env:GITHUB_RUN_ATTEMPT
 
-          & ./pipelines/scripts/common/Push-ContainerImage.ps1 `
+          $imageReference = & ./pipelines/scripts/common/Push-ContainerImage.ps1 `
             -Image $taggedImage `
             -RegistryUsername $env:GITHUB_ACTOR
+
+          "image-reference=$imageReference" >> $env:GITHUB_OUTPUT
