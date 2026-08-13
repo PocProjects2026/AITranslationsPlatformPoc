@@ -1,0 +1,218 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - "FrontendApp/**"
+      - ".github/workflows/frontend-ci.yml"
+
+  push:
+    branches:
+      - develop
+      - main
+      - "feature/**"
+    paths:
+      - "FrontendApp/**"
+      - ".github/workflows/frontend-ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24.16.0"
+  IMAGE_NAME: translation-platform-frontend:${{ github.sha }}
+
+jobs:
+  frontend-quality:
+    name: Angular quality checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: FrontendApp
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: FrontendApp/package-lock.json
+
+      - name: Display tool versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high
+
+      - name: Run unit tests
+        run: npm test -- --watch=false
+
+      - name: Extract Angular i18n messages
+        run: npm run extract-i18n
+
+      - name: Verify source XLIFF is up to date
+        run: git diff --exit-code --ignore-matching-lines='context-type="linenumber"' -- src/locale/messages.xlf
+ 
+      - name: Validate XLIFF files
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+          import xml.etree.ElementTree as ET
+
+          files = [
+              Path("src/locale/messages.xlf"),
+              Path("src/locale/messages.fr.xlf"),
+              Path("src/locale/messages.de.xlf"),
+          ]
+
+          for file_path in files:
+              if not file_path.is_file():
+                  print(f"::error::Missing XLIFF file: {file_path}")
+                  sys.exit(1)
+
+              try:
+                  root = ET.parse(file_path).getroot()
+              except ET.ParseError as error:
+                  print(f"::error::Invalid XML in {file_path}: {error}")
+                  sys.exit(1)
+
+              if root.attrib.get("version") != "1.2":
+                  print(
+                      f"::error::{file_path} must use XLIFF version 1.2"
+                  )
+                  sys.exit(1)
+
+              print(f"Valid XLIFF file: {file_path}")
+
+          print("All XLIFF files are valid.")
+          PY
+
+      - name: Build English bundle
+        run: npm run build
+
+      - name: Build French bundle
+        run: npm run build -- --configuration fr
+
+      - name: Build German bundle
+        run: npm run build -- --configuration de
+
+  container-validation:
+    name: Docker container checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: frontend-quality
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --tag "${IMAGE_NAME}" \
+            FrontendApp
+
+      - name: Start Docker container
+        run: |
+          docker run \
+            --detach \
+            --name frontend-ci \
+            --publish 8080:8080 \
+            "${IMAGE_NAME}" 
+
+
+      - name: Wait for application
+        shell: bash
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent \
+              http://127.0.0.1:8080/health > /dev/null; then
+              echo "Container is healthy."
+              exit 0
+            fi
+
+            echo "Waiting for container: attempt ${attempt}/30"
+            sleep 2
+          done
+
+          echo "Container did not become healthy."
+          docker logs frontend-ci
+          exit 1
+
+      - name: Test localized routes
+        shell: bash
+        run: |
+            test "$(
+              curl --fail --silent --show-error \
+                http://127.0.0.1:8080/health
+            )" = "ok"
+
+            for route in "/" "/fr/" "/de/"; do
+              echo "Testing ${route}"
+
+              status_code="$(
+                curl \
+                  --silent \
+                  --show-error \
+                  --location \
+                  --output /dev/null \
+                  --write-out "%{http_code}" \
+                  "http://127.0.0.1:8080${route}"
+              )"
+
+              echo "${route} returned HTTP ${status_code}"
+
+              if [ "${status_code}" -lt 200 ] || [ "${status_code}" -ge 400 ]; then
+                echo "::error::Route ${route} returned HTTP ${status_code}"
+                exit 1
+              fi
+            done
+
+      - name: Verify security headers
+        shell: bash
+        run: |
+          curl --fail --silent \
+            --dump-header response-headers.txt \
+            --output /dev/null \
+            http://127.0.0.1:8080/
+
+          grep --ignore-case \
+            "^X-Content-Type-Options: nosniff" \
+            response-headers.txt
+
+          grep --ignore-case \
+            "^X-Frame-Options: DENY" \
+            response-headers.txt
+
+          grep --ignore-case \
+            "^Content-Security-Policy:" \
+            response-headers.txt
+
+      - name: Display container logs on failure
+        if: failure()
+        run: docker logs frontend-ci
+
+      - name: Remove test container
+        if: always()
+        run: docker rm --force frontend-ci || true
