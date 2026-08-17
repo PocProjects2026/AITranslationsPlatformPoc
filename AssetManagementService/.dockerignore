@@ -10,3 +10,6 @@ tests
 data
 *.db
 artifacts
+render-report-de.pdf
+render-report-en.pdf
+render-report-fr.pdf
