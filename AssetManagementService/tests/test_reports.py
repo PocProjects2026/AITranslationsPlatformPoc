@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.database import Base, get_db
 from app.main import app
-
+from app.services import translation_loader
 
 @pytest.fixture
 def client(tmp_path: Path):
@@ -73,3 +73,50 @@ def test_create_report_rejects_unsupported_language(
     )
 
     assert response.status_code == 422
+
+
+def test_create_report_returns_503_when_translation_file_is_missing(
+    client: TestClient,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        translation_loader,
+        "TRANSLATIONS_DIRECTORY",
+        tmp_path,
+    )
+
+    response = client.post(
+        "/reports",
+        json={"language": "en"},
+    )
+
+    assert response.status_code == 503
+    assert isinstance(response.json()["detail"], str)
+
+
+def test_create_report_returns_503_when_translation_json_is_invalid(
+    client: TestClient,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    invalid_translation_file = tmp_path / "messages.en.json"
+
+    invalid_translation_file.write_text(
+        "{ invalid json }",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        translation_loader,
+        "TRANSLATIONS_DIRECTORY",
+        tmp_path,
+    )
+
+    response = client.post(
+        "/reports",
+        json={"language": "en"},
+    )
+
+    assert response.status_code == 503
+    assert isinstance(response.json()["detail"], str)
