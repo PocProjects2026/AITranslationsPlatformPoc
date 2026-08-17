@@ -12,11 +12,7 @@ from app.main import app
 def test_asset_crud(tmp_path: Path):
     database_file = tmp_path / "test-assets.db"
 
-    test_database_url = os.getenv(
-        "TEST_DATABASE_URL",
-        f"sqlite:///{database_file}",
-    )
-
+    test_database_url = f"sqlite:///{database_file}"
     connect_args = {}
 
     if test_database_url.startswith("sqlite"):
