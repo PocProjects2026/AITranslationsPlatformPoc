@@ -92,3 +92,6 @@ jobs:
         
       - name: Run tests
         run: python -m pytest -q
+
+      - name: Build backend Docker image
+        run: docker build -t asset-management-service .
