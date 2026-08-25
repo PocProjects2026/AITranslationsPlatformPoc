@@ -10,9 +10,6 @@ app = FastAPI(
 )
 
 
-translator = AzureTranslator()
-
-
 class HealthResponse(BaseModel):
     status: str
 
@@ -42,6 +39,7 @@ def health() -> HealthResponse:
 async def translate(
     request: TranslationRequest,
 ) -> TranslationResponse:
+    translator = AzureTranslator()
 
     translated_text = await translator.translate(
         text=request.text,
