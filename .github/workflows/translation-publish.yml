@@ -1,0 +1,223 @@
+name: Translation Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      translation_version:
+        description: "New immutable translation version, for example version-6"
+        required: true
+        type: string
+
+      run_frontend_ci:
+        description: "Run Frontend CI after publishing"
+        required: true
+        default: true
+        type: boolean
+
+
+permissions:
+  contents: read
+  actions: write
+
+
+concurrency:
+  group: translation-publish
+  cancel-in-progress: false
+
+
+jobs:
+  publish:
+    name: Generate and publish translations
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 15
+
+    env:
+      TRANSLATION_VERSION: ${{ inputs.translation_version }}
+
+      # Azure Translator
+      AZURE_TRANSLATOR_ENDPOINT: ${{ vars.AZURE_TRANSLATOR_ENDPOINT }}
+      AZURE_TRANSLATOR_REGION: ${{ vars.AZURE_TRANSLATOR_REGION }}
+      AZURE_TRANSLATOR_KEY: ${{ secrets.AZURE_TRANSLATOR_KEY }}
+
+      # Cloudflare R2
+      R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+      R2_BUCKET: ${{ vars.R2_BUCKET }}
+
+      # IMPORTANT:
+      # use the TranslationService WRITE token here,
+      # not the read-only Asset Management token.
+      R2_ACCESS_KEY_ID: ${{ secrets.TRANSLATION_R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.TRANSLATION_R2_SECRET_ACCESS_KEY }}
+
+
+    steps:
+
+      # -----------------------------------------------------
+      # 1. Repository
+      # -----------------------------------------------------
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+
+      # -----------------------------------------------------
+      # 2. Node / Angular
+      # -----------------------------------------------------
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: FrontendApp/package-lock.json
+
+
+      - name: Install frontend dependencies
+        working-directory: FrontendApp
+        run: npm ci
+
+
+      # -----------------------------------------------------
+      # 3. Extract English XLIFF from Angular
+      # -----------------------------------------------------
+
+      - name: Extract Angular source translations
+        working-directory: FrontendApp
+        run: npm run extract-i18n
+
+
+      - name: Verify English source XLIFF
+        shell: bash
+        run: |
+          if [ ! -f "FrontendApp/src/locale/messages.xlf" ]; then
+            echo "::error::messages.xlf was not generated."
+            exit 1
+          fi
+
+          echo "English Angular XLIFF generated successfully."
+
+
+      # -----------------------------------------------------
+      # 4. Python / TranslationService
+      # -----------------------------------------------------
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+
+      - name: Install TranslationService dependencies
+        working-directory: TranslationService
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            httpx \
+            python-dotenv \
+            boto3
+
+
+      # -----------------------------------------------------
+      # 5. Check required configuration
+      # -----------------------------------------------------
+
+      - name: Check translation configuration
+        shell: bash
+        run: |
+          : "${TRANSLATION_VERSION:?Missing TRANSLATION_VERSION}"
+
+          : "${AZURE_TRANSLATOR_ENDPOINT:?Missing AZURE_TRANSLATOR_ENDPOINT}"
+          : "${AZURE_TRANSLATOR_REGION:?Missing AZURE_TRANSLATOR_REGION}"
+          : "${AZURE_TRANSLATOR_KEY:?Missing AZURE_TRANSLATOR_KEY}"
+
+          : "${R2_ENDPOINT:?Missing R2_ENDPOINT}"
+          : "${R2_BUCKET:?Missing R2_BUCKET}"
+          : "${R2_ACCESS_KEY_ID:?Missing TranslationService R2 access key}"
+          : "${R2_SECRET_ACCESS_KEY:?Missing TranslationService R2 secret key}"
+
+          echo "Required translation configuration is available."
+
+
+      # -----------------------------------------------------
+      # 6. Azure translation + validation + R2 publication
+      # -----------------------------------------------------
+
+      - name: Generate validate and publish XLIFF translations
+        working-directory: TranslationService
+        run: |
+          python -m scripts.generate_and_publish_frontend_xlfs
+
+
+      # -----------------------------------------------------
+      # 7. Keep generated files as GitHub artifact
+      # -----------------------------------------------------
+
+      - name: Prepare translation artifact
+        shell: bash
+        run: |
+          mkdir -p translation-artifact
+
+          cp \
+            FrontendApp/src/locale/messages.xlf \
+            translation-artifact/messages.xlf
+
+          cp \
+            TranslationService/artifacts/frontend/messages.fr.xlf \
+            translation-artifact/messages.fr.xlf
+
+          cp \
+            TranslationService/artifacts/frontend/messages.de.xlf \
+            translation-artifact/messages.de.xlf
+
+          printf '%s\n' "${TRANSLATION_VERSION}" \
+            > translation-artifact/translation-version.txt
+
+
+      - name: Upload generated translation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-translations-${{ inputs.translation_version }}
+          path: translation-artifact
+          retention-days: 7
+
+
+      # -----------------------------------------------------
+      # 8. Summary
+      # -----------------------------------------------------
+
+      - name: Write publication summary
+        shell: bash
+        run: |
+          {
+            echo "## Translation publication"
+            echo ""
+            echo "| Property | Value |"
+            echo "| --- | --- |"
+            echo "| Version | ${TRANSLATION_VERSION} |"
+            echo "| Source language | English |"
+            echo "| Generated languages | French, German |"
+            echo "| Storage | Cloudflare R2 |"
+            echo "| R2 prefix | translations/${TRANSLATION_VERSION}/ |"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+
+      # -----------------------------------------------------
+      # 9. Trigger Frontend CI using EXACTLY this version
+      # -----------------------------------------------------
+
+      - name: Trigger Frontend CI
+        if: ${{ inputs.run_frontend_ci }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
+        run: |
+          gh workflow run frontend-ci.yml \
+            --ref "${SOURCE_BRANCH}" \
+            -f translation_version="${TRANSLATION_VERSION}"
+
+          echo "Frontend CI triggered."
+          echo "Translation version: ${TRANSLATION_VERSION}"
+          echo "Branch: ${SOURCE_BRANCH}"
