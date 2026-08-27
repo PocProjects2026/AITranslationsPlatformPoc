@@ -20,13 +20,22 @@ from app.services.asset_service import (
 )
 from app.models import Asset
 from app.schemas import AssetCreate, AssetResponse, AssetUpdate
-
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="Asset Management Service",
     version="0.1.0",
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:4300",
+        "https://translation-platform-frontend.pages.dev",
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 
