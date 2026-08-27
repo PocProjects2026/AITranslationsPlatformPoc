@@ -45,4 +45,13 @@ export class AssetService {
       `${this.apiUrl}/assets/${id}`
     );
   }
+  generateReport(language: 'en' | 'fr' | 'de'): Observable<Blob> {
+  return this.http.post(
+    `${this.apiUrl}/reports`,
+    { language },
+    {
+      responseType: 'blob',
+    }
+  );
+}
 }

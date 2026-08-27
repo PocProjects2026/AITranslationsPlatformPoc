@@ -60,7 +60,40 @@ export class App implements OnInit {
   ngOnInit(): void {
     this.loadAssets();
   }
+  protected readonly reportLoading = signal(false);
+  protected readonly reportError = signal<string | null>(null);
+  protected generateReport(): void {
+  this.reportLoading.set(true);
+  this.reportError.set(null);
 
+  this.assetService
+    .generateReport(this.currentLocale)
+    .subscribe({
+      next: (pdfBlob) => {
+        const url = URL.createObjectURL(pdfBlob);
+
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download =
+          `asset-management-report-${this.currentLocale}.pdf`;
+
+        link.click();
+
+        URL.revokeObjectURL(url);
+
+        this.reportLoading.set(false);
+      },
+
+      error: () => {
+        this.reportError.set(
+          'Unable to generate the report.'
+        );
+
+        this.reportLoading.set(false);
+      },
+    });
+}
   protected changeLanguage(event: Event): void {
     const selectElement =
       event.target as HTMLSelectElement;

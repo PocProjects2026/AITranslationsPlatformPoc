@@ -80,7 +80,6 @@
   </header>
 
 
-
   <!-- =====================================================
        MAIN PAGE
        ===================================================== -->
@@ -132,7 +131,6 @@
       </div>
 
 
-
       <!-- =================================================
            CREATE / EDIT ASSET FORM
            ================================================= -->
@@ -145,15 +143,31 @@
 
           <div>
 
-            <p class="demo-card__label">
+            <p
+              class="demo-card__label"
+              i18n="Asset Management section label@@assetManagementLabel"
+            >
               Asset Management
             </p>
 
+
             <h2>
               @if (editingAssetId === null) {
-                Create an asset
+
+                <span
+                  i18n="Create asset title@@assetCreateTitle"
+                >
+                  Create an asset
+                </span>
+
               } @else {
-                Edit asset
+
+                <span
+                  i18n="Edit asset title@@assetEditTitle"
+                >
+                  Edit asset
+                </span>
+
               }
             </h2>
 
@@ -167,19 +181,27 @@
         </header>
 
 
-
-        <p class="demo-card__description">
+        <div class="demo-card__description">
 
           @if (editingAssetId === null) {
-            Create and manage assets stored in the
-            Asset Management database.
+
+            <span
+              i18n="Create asset description@@assetCreateDescription"
+            >
+              Create and manage assets stored in the Asset Management database.
+            </span>
+
           } @else {
-            Update the selected asset and save the
-            changes to the database.
+
+            <span
+              i18n="Edit asset description@@assetEditDescription"
+            >
+              Update the selected asset and save the changes to the database.
+            </span>
+
           }
 
-        </p>
-
+        </div>
 
 
         <form (ngSubmit)="submitAsset()">
@@ -188,7 +210,10 @@
           <!-- ASSET NAME -->
           <div class="field">
 
-            <label for="asset-name">
+            <label
+              for="asset-name"
+              i18n="Asset name label@@assetNameLabel"
+            >
               Asset name
             </label>
 
@@ -198,17 +223,20 @@
               type="text"
               [(ngModel)]="assetName"
               placeholder="Example: Web Server"
+              i18n-placeholder="Asset name placeholder@@assetNamePlaceholder"
               required
             />
 
           </div>
 
 
-
           <!-- REFERENCE -->
           <div class="field">
 
-            <label for="asset-reference">
+            <label
+              for="asset-reference"
+              i18n="Asset reference label@@assetReferenceLabel"
+            >
               Reference
             </label>
 
@@ -218,17 +246,20 @@
               type="text"
               [(ngModel)]="assetReference"
               placeholder="Example: WEB-001"
+              i18n-placeholder="Asset reference placeholder@@assetReferencePlaceholder"
               required
             />
 
           </div>
 
 
-
           <!-- STATUS -->
           <div class="field">
 
-            <label for="asset-status">
+            <label
+              for="asset-status"
+              i18n="Asset status label@@assetStatusLabel"
+            >
               Status
             </label>
 
@@ -238,15 +269,24 @@
               [(ngModel)]="assetStatus"
             >
 
-              <option value="Active">
+              <option
+                value="Active"
+                i18n="Active asset status@@assetStatusActive"
+              >
                 Active
               </option>
 
-              <option value="Inactive">
+              <option
+                value="Inactive"
+                i18n="Inactive asset status@@assetStatusInactive"
+              >
                 Inactive
               </option>
 
-              <option value="Maintenance">
+              <option
+                value="Maintenance"
+                i18n="Maintenance asset status@@assetStatusMaintenance"
+              >
                 Maintenance
               </option>
 
@@ -255,11 +295,13 @@
           </div>
 
 
-
           <!-- OWNER -->
           <div class="field">
 
-            <label for="asset-owner">
+            <label
+              for="asset-owner"
+              i18n="Asset owner label@@assetOwnerLabel"
+            >
               Owner
             </label>
 
@@ -269,16 +311,19 @@
               type="text"
               [(ngModel)]="assetOwner"
               placeholder="Example: Platform Team"
+              i18n-placeholder="Asset owner placeholder@@assetOwnerPlaceholder"
             />
 
           </div>
 
 
-
           <!-- TAGS -->
           <div class="field">
 
-            <label for="asset-tags">
+            <label
+              for="asset-tags"
+              i18n="Asset tags label@@assetTagsLabel"
+            >
               Tags
             </label>
 
@@ -288,10 +333,10 @@
               type="text"
               [(ngModel)]="assetTags"
               placeholder="Production, Cloud, Server"
+              i18n-placeholder="Asset tags placeholder@@assetTagsPlaceholder"
             />
 
           </div>
-
 
 
           <!-- FORM ACTIONS -->
@@ -303,9 +348,21 @@
             >
 
               @if (editingAssetId === null) {
-                Create Asset
+
+                <span
+                  i18n="Create asset button@@assetCreateButton"
+                >
+                  Create Asset
+                </span>
+
               } @else {
-                Save Changes
+
+                <span
+                  i18n="Save asset changes button@@assetSaveChangesButton"
+                >
+                  Save Changes
+                </span>
+
               }
 
             </button>
@@ -315,6 +372,7 @@
               class="button button--secondary"
               type="button"
               (click)="resetForm()"
+              i18n="Cancel asset form button@@assetCancelButton"
             >
               Cancel
             </button>
@@ -322,7 +380,6 @@
           </div>
 
         </form>
-
 
 
         <!-- SUCCESS MESSAGE -->
@@ -336,7 +393,6 @@
           </p>
 
         }
-
 
 
         <!-- ERROR MESSAGE -->
@@ -356,7 +412,6 @@
     </section>
 
 
-
     <!-- ===================================================
          EXISTING ASSETS
          =================================================== -->
@@ -370,11 +425,16 @@
 
           <div>
 
-            <p class="demo-card__label">
+            <p
+              class="demo-card__label"
+              i18n="Database section label@@assetDatabaseLabel"
+            >
               Database
             </p>
 
-            <h2>
+            <h2
+              i18n="Existing assets title@@existingAssetsTitle"
+            >
               Existing Assets
             </h2>
 
@@ -385,6 +445,7 @@
             class="button button--secondary"
             type="button"
             (click)="loadAssets()"
+            i18n="Refresh assets button@@assetRefreshButton"
           >
             Refresh
           </button>
@@ -392,22 +453,24 @@
         </header>
 
 
-
-        <p class="demo-card__description">
+        <p
+          class="demo-card__description"
+          i18n="Existing assets description@@existingAssetsDescription"
+        >
           Assets loaded from the deployed Asset Management API.
         </p>
-
 
 
         <!-- LOADING -->
         @if (assetsLoading()) {
 
-          <p>
+          <p
+            i18n="Loading assets message@@assetsLoadingMessage"
+          >
             Loading assets...
           </p>
 
         }
-
 
 
         <!-- LOAD ERROR -->
@@ -423,7 +486,6 @@
         }
 
 
-
         <!-- EMPTY DATABASE -->
         @if (
           !assetsLoading() &&
@@ -431,12 +493,13 @@
           assets().length === 0
         ) {
 
-          <p>
+          <p
+            i18n="No assets message@@noAssetsMessage"
+          >
             No assets found.
           </p>
 
         }
-
 
 
         <!-- =================================================
@@ -484,7 +547,6 @@
                 </div>
 
 
-
                 <!-- ASSET DETAILS -->
                 <div class="asset-card__details">
 
@@ -492,7 +554,10 @@
                   <!-- OWNER -->
                   <div>
 
-                    <span class="asset-card__label">
+                    <span
+                      class="asset-card__label"
+                      i18n="Asset owner card label@@assetCardOwnerLabel"
+                    >
                       Owner
                     </span>
 
@@ -503,11 +568,13 @@
                   </div>
 
 
-
                   <!-- TAGS -->
                   <div>
 
-                    <span class="asset-card__label">
+                    <span
+                      class="asset-card__label"
+                      i18n="Asset tags card label@@assetCardTagsLabel"
+                    >
                       Tags
                     </span>
 
@@ -516,7 +583,10 @@
 
                       @if (asset.tags.length === 0) {
 
-                        <span class="asset-tag">
+                        <span
+                          class="asset-tag"
+                          i18n="No value label@@noneLabel"
+                        >
                           None
                         </span>
 
@@ -542,7 +612,6 @@
                 </div>
 
 
-
                 <!-- CRUD ACTIONS -->
                 <div class="asset-card__actions">
 
@@ -550,6 +619,7 @@
                     class="button button--secondary"
                     type="button"
                     (click)="startEdit(asset)"
+                    i18n="Edit asset button@@assetEditButton"
                   >
                     Edit
                   </button>
@@ -559,6 +629,7 @@
                     class="button button--danger"
                     type="button"
                     (click)="deleteAsset(asset)"
+                    i18n="Delete asset button@@assetDeleteButton"
                   >
                     Delete
                   </button>
@@ -577,8 +648,102 @@
 
     </section>
 
-  </main>
 
+    <!-- ===================================================
+         PDF REPORT
+         =================================================== -->
+    <section class="report-section">
+
+      <article class="report-card">
+
+
+        <div class="report-card__content">
+
+          <div class="report-card__icon">
+            PDF
+          </div>
+
+
+          <div>
+
+            <p
+              class="report-card__label"
+              i18n="Reporting section label@@reportingLabel"
+            >
+              Reporting
+            </p>
+
+            <h2
+              i18n="Generate Asset report title@@generateAssetReportTitle"
+            >
+              Generate Asset Report
+            </h2>
+
+            <p
+              class="report-card__description"
+              i18n="Generate report description@@generateAssetReportDescription"
+            >
+              Export the current assets as a multilingual PDF report.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="report-card__actions">
+
+          <span class="report-language">
+            {{ currentLocale.toUpperCase() }}
+          </span>
+
+
+          <button
+            class="button button--primary"
+            type="button"
+            (click)="generateReport()"
+            [disabled]="reportLoading()"
+          >
+
+            @if (reportLoading()) {
+
+              <span
+                i18n="Generating report button@@reportGeneratingButton"
+              >
+                Generating...
+              </span>
+
+            } @else {
+
+              <span
+                i18n="Generate PDF button@@reportGenerateButton"
+              >
+                Generate PDF
+              </span>
+
+            }
+
+          </button>
+
+        </div>
+
+
+        @if (reportError()) {
+
+          <p
+            class="feedback feedback--deleted report-card__error"
+            role="alert"
+          >
+            {{ reportError() }}
+          </p>
+
+        }
+
+      </article>
+
+    </section>
+
+  </main>
 
 
   <!-- =====================================================
