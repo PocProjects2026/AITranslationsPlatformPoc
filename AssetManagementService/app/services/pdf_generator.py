@@ -17,7 +17,6 @@ from reportlab.platypus import (
 def generate_asset_management_report(
     output_path: Path,
     report_title: str,
-    report_description: str,
     total_assets_label: str,
     total_assets: int,
     assets_label: str,
@@ -111,12 +110,7 @@ def generate_asset_management_report(
         )
     )
 
-    story.append(
-        Paragraph(
-            report_description,
-            description_style,
-        )
-    )
+
 
     # --------------------------------------------------
     # Report summary

@@ -99,42 +99,43 @@ def create_report(request: ReportRequest,db: Session = Depends(get_db)) -> FileR
         / f"asset-management-report-{request.language}.pdf"
     )
 
-    generated_file = generate_asset_management_report(
-    output_path=output_file,
-    report_title=translations[
-        "asset-management-report-title"
-    ],
-    report_description=translations[
-        "asset-management-report-description"
-    ],
-    total_assets_label=translations[
-        "asset-management-total-assets"
-    ],
-    total_assets=total_assets,
-    assets_label=translations[
-        "asset-management-assets"
-    ],
-    reference_label=translations[
-        "asset-management-reference"
-    ],
-    status_label=translations[
-        "asset-management-status"
-    ],
-    tags_label=translations[
-        "asset-management-tags"
-    ],
-    completed_status=translations[
-        "asset-management-status-completed"
-    ],
-    assets=asset_data,
+    output_file = (
+    GENERATED_REPORTS_DIRECTORY
+    / f"asset-management-report-{request.language}.pdf"
 )
+
+    generated_file = generate_asset_management_report(
+        output_path=output_file,
+        report_title=translations[
+            "asset-management-report-title"
+        ],
+        total_assets_label=translations[
+            "asset-management-total-assets"
+        ],
+        total_assets=total_assets,
+        assets_label=translations[
+            "asset-management-assets"
+        ],
+        reference_label=translations[
+            "asset-management-reference"
+        ],
+        status_label=translations[
+            "asset-management-status"
+        ],
+        tags_label=translations[
+            "asset-management-tags"
+        ],
+        completed_status=translations[
+            "asset-management-status-completed"
+        ],
+        assets=asset_data,
+    )
 
     return FileResponse(
         path=generated_file,
         media_type="application/pdf",
         filename=(
-            f"asset-management-report-description"
-            f"{request.language}.pdf"
+            f"asset-management-report-{request.language}.pdf"
         ),
     )
 

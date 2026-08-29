@@ -1,6 +1,5 @@
 {
   "asset-management-report-title": "Rapport de gestion des actifs",
-  "asset-management-report-description": "Ce rapport a été généré par le service backend.",
   "asset-management-total-assets": "Nombre total d'actifs",
   "asset-management-status": "Statut",
   "asset-management-status-completed": "Terminé",
