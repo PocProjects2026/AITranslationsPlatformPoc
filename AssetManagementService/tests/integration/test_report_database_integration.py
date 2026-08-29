@@ -9,7 +9,7 @@ from app.database import Base, get_db
 from app.main import app
 from app.models import Asset,Tag
 import os
-
+import re
 def test_report_uses_asset_count_from_database(
     tmp_path,
 ) -> None:
@@ -134,7 +134,10 @@ def test_report_uses_asset_count_from_database(
             for page in pdf_reader.pages
         )
 
-        assert "Total assets: 3" in pdf_text
+        assert re.search(
+            r"Total assets\s+3",
+            pdf_text,
+            )
         assert "Server-01" in pdf_text
         assert "SRV-001" in pdf_text
         assert "Production" in pdf_text

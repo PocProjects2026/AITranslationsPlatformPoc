@@ -1,4 +1,5 @@
 import asyncio
+import os
 import shutil
 from pathlib import Path
 
@@ -7,7 +8,9 @@ from app.services.json_translator import (
     load_json_catalog,
     validate_translation_catalogs,
 )
-from app.services.r2_uploader import publish_translation_version
+from app.services.r2_uploader import (
+    publish_translation_version,
+)
 
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
@@ -26,10 +29,24 @@ ARTIFACTS_DIRECTORY = (
 )
 
 
+def get_translation_version() -> str:
+    version = os.getenv("TRANSLATION_VERSION")
+
+    if not version:
+        raise ValueError(
+            "Missing TRANSLATION_VERSION environment variable."
+        )
+
+    return version
+
+
 async def main() -> None:
+    version = get_translation_version()
+
     if not SOURCE_FILE.is_file():
         raise FileNotFoundError(
-            f"Missing Asset Management source catalog: {SOURCE_FILE}"
+            f"Missing Asset Management source catalog: "
+            f"{SOURCE_FILE}"
         )
 
     ARTIFACTS_DIRECTORY.mkdir(
@@ -37,17 +54,30 @@ async def main() -> None:
         exist_ok=True,
     )
 
-    english_file = ARTIFACTS_DIRECTORY / "messages.en.json"
-    french_file = ARTIFACTS_DIRECTORY / "messages.fr.json"
-    german_file = ARTIFACTS_DIRECTORY / "messages.de.json"
+    english_file = (
+        ARTIFACTS_DIRECTORY
+        / "messages.en.json"
+    )
 
-    # Copy the tracked English source into the generated artifact directory.
+    french_file = (
+        ARTIFACTS_DIRECTORY
+        / "messages.fr.json"
+    )
+
+    german_file = (
+        ARTIFACTS_DIRECTORY
+        / "messages.de.json"
+    )
+
     shutil.copy2(
         SOURCE_FILE,
         english_file,
     )
 
-    print("Generating French Asset Management translations...")
+    print(
+        "Generating French Asset Management "
+        "translations..."
+    )
 
     await generate_translated_json(
         source_file=SOURCE_FILE,
@@ -55,7 +85,10 @@ async def main() -> None:
         target_language="fr",
     )
 
-    print("Generating German Asset Management translations...")
+    print(
+        "Generating German Asset Management "
+        "translations..."
+    )
 
     await generate_translated_json(
         source_file=SOURCE_FILE,
@@ -63,11 +96,21 @@ async def main() -> None:
         target_language="de",
     )
 
-    print("Validating translation catalogs...")
+    print(
+        "Validating translation catalogs..."
+    )
 
-    english_catalog = load_json_catalog(english_file)
-    french_catalog = load_json_catalog(french_file)
-    german_catalog = load_json_catalog(german_file)
+    english_catalog = load_json_catalog(
+        english_file
+    )
+
+    french_catalog = load_json_catalog(
+        french_file
+    )
+
+    german_catalog = load_json_catalog(
+        german_file
+    )
 
     validate_translation_catalogs(
         english_catalog,
@@ -77,14 +120,30 @@ async def main() -> None:
 
     print("Validation successful.")
 
-    print("Publishing translation version to R2...")
+    print(
+        f"Publishing Asset Management "
+        f"translation version: {version}"
+    )
 
     uploaded_keys = publish_translation_version(
-        ARTIFACTS_DIRECTORY
+        files=[
+            english_file,
+            french_file,
+            german_file,
+        ],
+        prefix="asset-management",
+        version=version,
     )
 
     for object_key in uploaded_keys:
-        print(f"Published: {object_key}")
+        print(
+            f"Published: {object_key}"
+        )
+
+    print(
+        f"Asset Management translation version "
+        f"{version} published successfully."
+    )
 
 
 if __name__ == "__main__":

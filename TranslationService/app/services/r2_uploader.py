@@ -7,8 +7,6 @@ from app.config import (
     R2_BUCKET,
     R2_ENDPOINT,
     R2_SECRET_ACCESS_KEY,
-    R2_TRANSLATION_PREFIX,
-    TRANSLATION_VERSION,
 )
 
 
@@ -22,8 +20,31 @@ def create_r2_client():
     )
 
 
+def ensure_version_does_not_exist(
+    prefix: str,
+    version: str,
+) -> None:
+    client = create_r2_client()
+
+    version_prefix = f"{prefix}/{version}/"
+
+    existing = client.list_objects_v2(
+        Bucket=R2_BUCKET,
+        Prefix=version_prefix,
+        MaxKeys=1,
+    )
+
+    if existing.get("KeyCount", 0) > 0:
+        raise ValueError(
+            f"Translation version already exists in R2: "
+            f"{version_prefix}"
+        )
+
+
 def upload_translation_artifact(
     file_path: Path,
+    prefix: str,
+    version: str,
 ) -> str:
     if not file_path.is_file():
         raise FileNotFoundError(
@@ -31,8 +52,8 @@ def upload_translation_artifact(
         )
 
     object_key = (
-        f"{R2_TRANSLATION_PREFIX}/"
-        f"{TRANSLATION_VERSION}/"
+        f"{prefix}/"
+        f"{version}/"
         f"{file_path.name}"
     )
 
@@ -46,18 +67,17 @@ def upload_translation_artifact(
 
     return object_key
 
+
 def publish_translation_version(
-    artifacts_directory: Path,
+    files: list[Path],
+    prefix: str,
+    version: str,
+    immutable: bool = True,
 ) -> list[str]:
-    required_files = [
-        artifacts_directory / "messages.en.json",
-        artifacts_directory / "messages.fr.json",
-        artifacts_directory / "messages.de.json",
-    ]
 
     missing_files = [
         file_path.name
-        for file_path in required_files
+        for file_path in files
         if not file_path.is_file()
     ]
 
@@ -67,11 +87,19 @@ def publish_translation_version(
             + ", ".join(missing_files)
         )
 
+    if immutable:
+        ensure_version_does_not_exist(
+            prefix,
+            version,
+        )
+
     uploaded_keys = []
 
-    for file_path in required_files:
+    for file_path in files:
         object_key = upload_translation_artifact(
-            file_path
+            file_path=file_path,
+            prefix=prefix,
+            version=version,
         )
 
         uploaded_keys.append(object_key)

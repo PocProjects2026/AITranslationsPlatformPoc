@@ -3,14 +3,7 @@ import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-import boto3
-
-from app.config import (
-    R2_ACCESS_KEY_ID,
-    R2_BUCKET,
-    R2_ENDPOINT,
-    R2_SECRET_ACCESS_KEY,
-)
+from app.services.r2_uploader import publish_translation_version
 from app.services.xlf_generator import generate_translated_xlf
 
 
@@ -46,10 +39,9 @@ def get_translation_version() -> str:
     return version
 
 
-def get_translation_unit_ids(file_path: Path) -> set[str]:
-    """
-    Parse an XLIFF file and return all translation-unit IDs.
-    """
+def get_translation_unit_ids(
+    file_path: Path,
+) -> set[str]:
 
     if not file_path.is_file():
         raise FileNotFoundError(
@@ -87,14 +79,18 @@ def validate_xlf_catalogs(
     french_file: Path,
     german_file: Path,
 ) -> None:
-    """
-    Verify that EN, FR and DE contain exactly the same
-    translation-unit IDs.
-    """
 
-    source_ids = get_translation_unit_ids(source_file)
-    french_ids = get_translation_unit_ids(french_file)
-    german_ids = get_translation_unit_ids(german_file)
+    source_ids = get_translation_unit_ids(
+        source_file
+    )
+
+    french_ids = get_translation_unit_ids(
+        french_file
+    )
+
+    german_ids = get_translation_unit_ids(
+        german_file
+    )
 
     if french_ids != source_ids:
         missing = source_ids - french_ids
@@ -120,49 +116,6 @@ def validate_xlf_catalogs(
         f"XLIFF validation successful: "
         f"{len(source_ids)} translation units."
     )
-
-
-def create_r2_client():
-    return boto3.client(
-        "s3",
-        endpoint_url=R2_ENDPOINT,
-        aws_access_key_id=R2_ACCESS_KEY_ID,
-        aws_secret_access_key=R2_SECRET_ACCESS_KEY,
-        region_name="auto",
-    )
-
-
-def publish_to_r2(
-    version: str,
-    files: list[Path],
-) -> None:
-    client = create_r2_client()
-    prefix = f"translations/{version}/"
-
-existing = client.list_objects_v2(
-    Bucket=R2_BUCKET,
-    Prefix=prefix,
-    MaxKeys=1,
-)
-
-if existing.get("KeyCount", 0) > 0:
-    raise ValueError(
-        f"Translation version already exists in R2: {version}"
-    )
-    for file_path in files:
-        object_key = (
-            f"translations/"
-            f"{version}/"
-            f"{file_path.name}"
-        )
-
-        client.upload_file(
-            str(file_path),
-            R2_BUCKET,
-            object_key,
-        )
-
-        print(f"Published: {object_key}")
 
 
 async def main() -> None:
@@ -212,14 +165,20 @@ async def main() -> None:
         f"{version}"
     )
 
-    publish_to_r2(
-        version,
-        [
+    uploaded_keys = publish_translation_version(
+        files=[
             SOURCE_FILE,
             FRENCH_FILE,
             GERMAN_FILE,
         ],
+        prefix="translations",
+        version=version,
     )
+
+    for object_key in uploaded_keys:
+        print(
+            f"Published: {object_key}"
+        )
 
     print(
         f"Frontend translation version "
