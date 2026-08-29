@@ -1,0 +1,62 @@
+name: Translation Service CI
+
+"on":
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - "TranslationService/**"
+      - ".github/workflows/translation-service-ci.yml"
+
+  push:
+    branches:
+      - develop
+      - main
+      - "feature/**"
+    paths:
+      - "TranslationService/**"
+      - ".github/workflows/translation-service-ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: translation-service-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  test:
+    name: Run TranslationService tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: TranslationService
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Show versions
+        run: |
+          python --version
+          python -m pip --version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install fastapi uvicorn httpx python-dotenv boto3 pytest
+
+      - name: Run tests
+        run: python -m pytest -q

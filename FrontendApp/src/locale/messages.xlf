@@ -6,7 +6,7 @@
         <source>Translation Platform home</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">6,7</context>
+          <context context-type="linenumber">11,12</context>
         </context-group>
         <note priority="1" from="description">Home link accessibility label</note>
       </trans-unit>
@@ -14,7 +14,7 @@
         <source> Translation Platform </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">13,16</context>
+          <context context-type="linenumber">26,29</context>
         </context-group>
         <note priority="1" from="description">Application name</note>
       </trans-unit>
@@ -22,7 +22,7 @@
         <source> Multilingual content management </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">17,20</context>
+          <context context-type="linenumber">32,36</context>
         </context-group>
         <note priority="1" from="description">Application subtitle</note>
       </trans-unit>
@@ -30,7 +30,7 @@
         <source> Language </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">27,31</context>
+          <context context-type="linenumber">46,50</context>
         </context-group>
         <note priority="1" from="description">Language selector label</note>
       </trans-unit>
@@ -38,7 +38,7 @@
         <source> English </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">39,43</context>
+          <context context-type="linenumber">59,63</context>
         </context-group>
         <note priority="1" from="description">English language option</note>
       </trans-unit>
@@ -46,7 +46,7 @@
         <source> French </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">46,50</context>
+          <context context-type="linenumber">66,70</context>
         </context-group>
         <note priority="1" from="description">French language option</note>
       </trans-unit>
@@ -54,7 +54,7 @@
         <source> German </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">53,56</context>
+          <context context-type="linenumber">73,77</context>
         </context-group>
         <note priority="1" from="description">German language option</note>
       </trans-unit>
@@ -62,7 +62,7 @@
         <source> Angular localization </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">66,69</context>
+          <context context-type="linenumber">102,105</context>
         </context-group>
         <note priority="1" from="description">Page category</note>
       </trans-unit>
@@ -70,7 +70,7 @@
         <source> One interface,<x id="LINE_BREAK" ctype="lb" equiv-text="&lt;br /&gt;"/> three languages. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">70,72</context>
+          <context context-type="linenumber">108,110</context>
         </context-group>
         <note priority="1" from="description">Main page heading</note>
       </trans-unit>
@@ -78,7 +78,7 @@
         <source> Deliver a consistent product experience in English, French, and German through a localized Angular application. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">78,83</context>
+          <context context-type="linenumber">116,121</context>
         </context-group>
         <note priority="1" from="description">Main page description</note>
       </trans-unit>
@@ -90,7 +90,7 @@
           }" xid="2564507615020870730"/> </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">86,92</context>
+          <context context-type="linenumber">124,131</context>
         </context-group>
         <note priority="1" from="description">Available languages pluralized message</note>
       </trans-unit>
@@ -98,102 +98,302 @@
         <source>{VAR_PLURAL, plural, =0 {No language is currently available.} =1 {Available in one language} other {Available in <x id="INTERPOLATION"/> languages}}</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">86,89</context>
+          <context context-type="linenumber">124,127</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="demoLabel" datatype="html">
-        <source> Interface preview </source>
+      <trans-unit id="assetManagementLabel" datatype="html">
+        <source> Asset Management </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">101,104</context>
+          <context context-type="linenumber">150,155</context>
         </context-group>
-        <note priority="1" from="description">Interface preview label</note>
+        <note priority="1" from="description">Asset Management section label</note>
       </trans-unit>
-      <trans-unit id="productManagementTitle" datatype="html">
-        <source> Product management </source>
+      <trans-unit id="assetCreateTitle" datatype="html">
+        <source> Create an asset </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">105,109</context>
+          <context context-type="linenumber">160,163</context>
         </context-group>
-        <note priority="1" from="description">Product management title</note>
+        <note priority="1" from="description">Create asset title</note>
       </trans-unit>
-      <trans-unit id="activeStatus" datatype="html">
+      <trans-unit id="assetEditTitle" datatype="html">
+        <source> Edit asset </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">168,170</context>
+        </context-group>
+        <note priority="1" from="description">Edit asset title</note>
+      </trans-unit>
+      <trans-unit id="assetCreateDescription" datatype="html">
+        <source> Create and manage assets stored in the Asset Management database. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">191,195</context>
+        </context-group>
+        <note priority="1" from="description">Create asset description</note>
+      </trans-unit>
+      <trans-unit id="assetEditDescription" datatype="html">
+        <source> Update the selected asset and save the changes to the database. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">199,204</context>
+        </context-group>
+        <note priority="1" from="description">Edit asset description</note>
+      </trans-unit>
+      <trans-unit id="assetNameLabel" datatype="html">
+        <source> Asset name </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">217,220</context>
+        </context-group>
+        <note priority="1" from="description">Asset name label</note>
+      </trans-unit>
+      <trans-unit id="assetNamePlaceholder" datatype="html">
+        <source>Example: Web Server</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">225,226</context>
+        </context-group>
+        <note priority="1" from="description">Asset name placeholder</note>
+      </trans-unit>
+      <trans-unit id="assetReferenceLabel" datatype="html">
+        <source> Reference </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">240,243</context>
+        </context-group>
+        <note priority="1" from="description">Asset reference label</note>
+      </trans-unit>
+      <trans-unit id="assetReferencePlaceholder" datatype="html">
+        <source>Example: WEB-001</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">248,249</context>
+        </context-group>
+        <note priority="1" from="description">Asset reference placeholder</note>
+      </trans-unit>
+      <trans-unit id="assetStatusLabel" datatype="html">
+        <source> Status </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">263,266</context>
+        </context-group>
+        <note priority="1" from="description">Asset status label</note>
+      </trans-unit>
+      <trans-unit id="assetStatusActive" datatype="html">
         <source> Active </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">113,115</context>
+          <context context-type="linenumber">276,279</context>
         </context-group>
-        <note priority="1" from="description">Active status</note>
+        <note priority="1" from="description">Active asset status</note>
       </trans-unit>
-      <trans-unit id="productManagementDescription" datatype="html">
-        <source> Create and manage products in your preferred language. </source>
+      <trans-unit id="assetStatusInactive" datatype="html">
+        <source> Inactive </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">121,125</context>
+          <context context-type="linenumber">283,286</context>
         </context-group>
-        <note priority="1" from="description">Product management description</note>
+        <note priority="1" from="description">Inactive asset status</note>
       </trans-unit>
-      <trans-unit id="productNameLabel" datatype="html">
-        <source> Product name </source>
+      <trans-unit id="assetStatusMaintenance" datatype="html">
+        <source> Maintenance </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">129,133</context>
+          <context context-type="linenumber">290,293</context>
         </context-group>
-        <note priority="1" from="description">Product name field label</note>
+        <note priority="1" from="description">Maintenance asset status</note>
       </trans-unit>
-      <trans-unit id="productNamePlaceholder" datatype="html">
-        <source>Enter a product name</source>
+      <trans-unit id="assetOwnerLabel" datatype="html">
+        <source> Owner </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">135,136</context>
+          <context context-type="linenumber">305,308</context>
         </context-group>
-        <note priority="1" from="description">Product name field placeholder</note>
+        <note priority="1" from="description">Asset owner label</note>
       </trans-unit>
-      <trans-unit id="saveButton" datatype="html">
-        <source> Save </source>
+      <trans-unit id="assetOwnerPlaceholder" datatype="html">
+        <source>Example: Platform Team</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">147,149</context>
+          <context context-type="linenumber">313,314</context>
         </context-group>
-        <note priority="1" from="description">Save button</note>
+        <note priority="1" from="description">Asset owner placeholder</note>
       </trans-unit>
-      <trans-unit id="deleteButton" datatype="html">
-        <source> Delete </source>
+      <trans-unit id="assetTagsLabel" datatype="html">
+        <source> Tags </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">156,159</context>
+          <context context-type="linenumber">327,330</context>
         </context-group>
-        <note priority="1" from="description">Delete button</note>
+        <note priority="1" from="description">Asset tags label</note>
       </trans-unit>
-      <trans-unit id="cancelButton" datatype="html">
+      <trans-unit id="assetTagsPlaceholder" datatype="html">
+        <source>Production, Cloud, Server</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">335,336</context>
+        </context-group>
+        <note priority="1" from="description">Asset tags placeholder</note>
+      </trans-unit>
+      <trans-unit id="assetCreateButton" datatype="html">
+        <source> Create Asset </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">355,358</context>
+        </context-group>
+        <note priority="1" from="description">Create asset button</note>
+      </trans-unit>
+      <trans-unit id="assetSaveChangesButton" datatype="html">
+        <source> Save Changes </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">363,366</context>
+        </context-group>
+        <note priority="1" from="description">Save asset changes button</note>
+      </trans-unit>
+      <trans-unit id="assetCancelButton" datatype="html">
         <source> Cancel </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">165,167</context>
+          <context context-type="linenumber">377,380</context>
         </context-group>
-        <note priority="1" from="description">Cancel button</note>
+        <note priority="1" from="description">Cancel asset form button</note>
       </trans-unit>
-      <trans-unit id="productSavedMessage" datatype="html">
-        <source> Product saved successfully. </source>
+      <trans-unit id="assetDatabaseLabel" datatype="html">
+        <source> Database </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">175,179</context>
+          <context context-type="linenumber">432,436</context>
         </context-group>
-        <note priority="1" from="description">Product saved feedback</note>
+        <note priority="1" from="description">Database section label</note>
       </trans-unit>
-      <trans-unit id="productDeletedMessage" datatype="html">
-        <source> Product deleted successfully. </source>
+      <trans-unit id="existingAssetsTitle" datatype="html">
+        <source> Existing Assets </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">185,189</context>
+          <context context-type="linenumber">438,442</context>
         </context-group>
-        <note priority="1" from="description">Product deleted feedback</note>
+        <note priority="1" from="description">Existing assets title</note>
+      </trans-unit>
+      <trans-unit id="assetRefreshButton" datatype="html">
+        <source> Refresh </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">450,453</context>
+        </context-group>
+        <note priority="1" from="description">Refresh assets button</note>
+      </trans-unit>
+      <trans-unit id="existingAssetsDescription" datatype="html">
+        <source> Assets loaded from the deployed Asset Management API. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">460,465</context>
+        </context-group>
+        <note priority="1" from="description">Existing assets description</note>
+      </trans-unit>
+      <trans-unit id="assetsLoadingMessage" datatype="html">
+        <source> Loading assets... </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">470,476</context>
+        </context-group>
+        <note priority="1" from="description">Loading assets message</note>
+      </trans-unit>
+      <trans-unit id="noAssetsMessage" datatype="html">
+        <source> No assets found. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">499,505</context>
+        </context-group>
+        <note priority="1" from="description">No assets message</note>
+      </trans-unit>
+      <trans-unit id="assetCardOwnerLabel" datatype="html">
+        <source> Owner </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">561,564</context>
+        </context-group>
+        <note priority="1" from="description">Asset owner card label</note>
+      </trans-unit>
+      <trans-unit id="assetCardTagsLabel" datatype="html">
+        <source> Tags </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">578,580</context>
+        </context-group>
+        <note priority="1" from="description">Asset tags card label</note>
+      </trans-unit>
+      <trans-unit id="noneLabel" datatype="html">
+        <source> None </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">590,591</context>
+        </context-group>
+        <note priority="1" from="description">No value label</note>
+      </trans-unit>
+      <trans-unit id="assetEditButton" datatype="html">
+        <source> Edit </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">624,625</context>
+        </context-group>
+        <note priority="1" from="description">Edit asset button</note>
+      </trans-unit>
+      <trans-unit id="assetDeleteButton" datatype="html">
+        <source> Delete </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">634,636</context>
+        </context-group>
+        <note priority="1" from="description">Delete asset button</note>
+      </trans-unit>
+      <trans-unit id="reportingLabel" datatype="html">
+        <source> Reporting </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">673,676</context>
+        </context-group>
+        <note priority="1" from="description">Reporting section label</note>
+      </trans-unit>
+      <trans-unit id="generateAssetReportTitle" datatype="html">
+        <source> Generate Asset Report </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">679,683</context>
+        </context-group>
+        <note priority="1" from="description">Generate Asset report title</note>
+      </trans-unit>
+      <trans-unit id="generateAssetReportDescription" datatype="html">
+        <source> Export the current assets as a multilingual PDF report. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">686,692</context>
+        </context-group>
+        <note priority="1" from="description">Generate report description</note>
+      </trans-unit>
+      <trans-unit id="reportGeneratingButton" datatype="html">
+        <source> Generating... </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">713,716</context>
+        </context-group>
+        <note priority="1" from="description">Generating report button</note>
+      </trans-unit>
+      <trans-unit id="reportGenerateButton" datatype="html">
+        <source> Generate PDF </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.html</context>
+          <context context-type="linenumber">721,724</context>
+        </context-group>
+        <note priority="1" from="description">Generate PDF button</note>
       </trans-unit>
       <trans-unit id="applicationFooter" datatype="html">
         <source> Built with Angular i18n and XLIFF. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/app.html</context>
-          <context context-type="linenumber">194,197</context>
+          <context context-type="linenumber">757,762</context>
         </context-group>
         <note priority="1" from="description">Application footer</note>
       </trans-unit>

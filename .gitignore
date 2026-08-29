@@ -1,3 +1,9 @@
 # Repository-wide local files
 .DS_Store
 Thumbs.db
+# python local files
+AssetManagementService/.venv/
+AssetManagementService/.pytest_cache/
+AssetManagementService/**/__pycache__/
+AssetManagementService/**/*.pyc
+AssetManagementService/generated-reports/

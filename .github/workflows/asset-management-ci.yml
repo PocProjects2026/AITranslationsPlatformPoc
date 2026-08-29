@@ -1,0 +1,97 @@
+name: Asset Management CI
+
+"on":
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - "AssetManagementService/**"
+      - ".github/workflows/asset-management-ci.yml"
+
+  push:
+    branches:
+      - develop
+      - main
+      - "feature/**"
+    paths:
+      - "AssetManagementService/**"
+      - ".github/workflows/asset-management-ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: asset-management-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  test:
+    name: Download translations and run tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: asset_management
+          POSTGRES_USER: asset_user
+          POSTGRES_PASSWORD: asset_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U asset_user -d asset_management"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+       DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+       TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+
+    defaults:
+      run:
+        working-directory: AssetManagementService
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: AssetManagementService/requirements-dev.txt
+
+      - name: Show versions
+        run: |
+          python --version
+          python -m pip --version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Download translations from R2
+        env:
+          R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          TRANSLATION_VERSION: ${{ vars.TRANSLATION_VERSION }}
+          R2_TRANSLATION_PREFIX: ${{ vars.R2_TRANSLATION_PREFIX }}
+        run: python -m scripts.download_translations_from_r2
+      
+      - name: Apply database migrations
+        run: python -m alembic upgrade head
+        
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Build backend Docker image
+        run: docker build -t asset-management-service .

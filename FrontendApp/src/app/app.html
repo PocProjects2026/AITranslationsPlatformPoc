@@ -1,25 +1,44 @@
 <div class="app-shell">
+
+  <!-- =====================================================
+       TOP BAR
+       ===================================================== -->
   <header class="topbar">
+
     <a
       class="brand"
       href="/"
       aria-label="Translation Platform home"
       i18n-aria-label="Home link accessibility label@@appHomeLabel"
     >
-      <span class="brand__mark" aria-hidden="true">T</span>
+      <span
+        class="brand__mark"
+        aria-hidden="true"
+      >
+        T
+      </span>
 
       <span class="brand__text">
-        <strong i18n="Application name@@applicationName">
+
+        <strong
+          i18n="Application name@@applicationName"
+        >
           Translation Platform
         </strong>
 
-        <small i18n="Application subtitle@@applicationSubtitle">
+        <small
+          i18n="Application subtitle@@applicationSubtitle"
+        >
           Multilingual content management
         </small>
+
       </span>
     </a>
 
+
+    <!-- LANGUAGE SELECTOR -->
     <div class="language-selector">
+
       <label
         for="application-language"
         i18n="Language selector label@@languageSelectorLabel"
@@ -32,6 +51,7 @@
         [value]="currentLocale"
         (change)="changeLanguage($event)"
       >
+
         <option
           value="en"
           i18n="English language option@@languageEnglish"
@@ -52,13 +72,29 @@
         >
           German
         </option>
+
       </select>
+
     </div>
+
   </header>
 
+
+  <!-- =====================================================
+       MAIN PAGE
+       ===================================================== -->
   <main class="page">
+
+
+    <!-- ===================================================
+         HERO + CREATE / EDIT FORM
+         =================================================== -->
     <section class="hero">
+
+
+      <!-- LEFT SIDE -->
       <div class="hero__introduction">
+
         <p
           class="eyebrow"
           i18n="Page category@@pageCategory"
@@ -66,7 +102,9 @@
           Angular localization
         </p>
 
-        <h1 i18n="Main page heading@@mainPageHeading">
+        <h1
+          i18n="Main page heading@@mainPageHeading"
+        >
           One interface,<br />
           three languages.
         </h1>
@@ -75,8 +113,8 @@
           class="hero__description"
           i18n="Main page description@@mainPageDescription"
         >
-          Deliver a consistent product experience in English, French, and
-          German through a localized Angular application.
+          Deliver a consistent product experience in English,
+          French, and German through a localized Angular application.
         </p>
 
         <p
@@ -89,109 +127,636 @@
             other {Available in {{ localizedVersionCount }} languages}
           }
         </p>
+
       </div>
 
-      <article class="demo-card">
+
+      <!-- =================================================
+           CREATE / EDIT ASSET FORM
+           ================================================= -->
+      <article
+        id="asset-form"
+        class="demo-card asset-form-card"
+      >
+
         <header class="demo-card__header">
+
           <div>
+
             <p
               class="demo-card__label"
-              i18n="Interface preview label@@demoLabel"
+              i18n="Asset Management section label@@assetManagementLabel"
             >
-              Interface preview
+              Asset Management
             </p>
 
-            <h2 i18n="Product management title@@productManagementTitle">
-              Product management
+
+            <h2>
+              @if (editingAssetId === null) {
+
+                <span
+                  i18n="Create asset title@@assetCreateTitle"
+                >
+                  Create an asset
+                </span>
+
+              } @else {
+
+                <span
+                  i18n="Edit asset title@@assetEditTitle"
+                >
+                  Edit asset
+                </span>
+
+              }
             </h2>
+
           </div>
 
-          <span
-            class="demo-card__status"
-            i18n="Active status@@activeStatus"
-          >
-            Active
+
+          <span class="demo-card__status">
+            API
           </span>
+
         </header>
 
-        <p
-          class="demo-card__description"
-          i18n="Product management description@@productManagementDescription"
-        >
-          Create and manage products in your preferred language.
-        </p>
 
-        <div class="field">
-          <label
-            for="product-name"
-            i18n="Product name field label@@productNameLabel"
-          >
-            Product name
-          </label>
+        <div class="demo-card__description">
 
-          <input
-            id="product-name"
-            type="text"
-            placeholder="Enter a product name"
-            i18n-placeholder="Product name field placeholder@@productNamePlaceholder"
-          />
+          @if (editingAssetId === null) {
+
+            <span
+              i18n="Create asset description@@assetCreateDescription"
+            >
+              Create and manage assets stored in the Asset Management database.
+            </span>
+
+          } @else {
+
+            <span
+              i18n="Edit asset description@@assetEditDescription"
+            >
+              Update the selected asset and save the changes to the database.
+            </span>
+
+          }
+
         </div>
 
-        <div class="actions">
-          <button
-            class="button button--primary"
-            type="button"
-            (click)="saveProduct()"
-            i18n="Save button@@saveButton"
-          >
-            Save
-          </button>
 
-          <button
-            class="button button--danger"
-            type="button"
-            (click)="deleteProduct()"
-            i18n="Delete button@@deleteButton"
+        <form (ngSubmit)="submitAsset()">
+
+
+          <!-- ASSET NAME -->
+          <div class="field">
+
+            <label
+              for="asset-name"
+              i18n="Asset name label@@assetNameLabel"
+            >
+              Asset name
+            </label>
+
+            <input
+              id="asset-name"
+              name="assetName"
+              type="text"
+              [(ngModel)]="assetName"
+              placeholder="Example: Web Server"
+              i18n-placeholder="Asset name placeholder@@assetNamePlaceholder"
+              required
+            />
+
+          </div>
+
+
+          <!-- REFERENCE -->
+          <div class="field">
+
+            <label
+              for="asset-reference"
+              i18n="Asset reference label@@assetReferenceLabel"
+            >
+              Reference
+            </label>
+
+            <input
+              id="asset-reference"
+              name="assetReference"
+              type="text"
+              [(ngModel)]="assetReference"
+              placeholder="Example: WEB-001"
+              i18n-placeholder="Asset reference placeholder@@assetReferencePlaceholder"
+              required
+            />
+
+          </div>
+
+
+          <!-- STATUS -->
+          <div class="field">
+
+            <label
+              for="asset-status"
+              i18n="Asset status label@@assetStatusLabel"
+            >
+              Status
+            </label>
+
+            <select
+              id="asset-status"
+              name="assetStatus"
+              [(ngModel)]="assetStatus"
+            >
+
+              <option
+                value="Active"
+                i18n="Active asset status@@assetStatusActive"
+              >
+                Active
+              </option>
+
+              <option
+                value="Inactive"
+                i18n="Inactive asset status@@assetStatusInactive"
+              >
+                Inactive
+              </option>
+
+              <option
+                value="Maintenance"
+                i18n="Maintenance asset status@@assetStatusMaintenance"
+              >
+                Maintenance
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- OWNER -->
+          <div class="field">
+
+            <label
+              for="asset-owner"
+              i18n="Asset owner label@@assetOwnerLabel"
+            >
+              Owner
+            </label>
+
+            <input
+              id="asset-owner"
+              name="assetOwner"
+              type="text"
+              [(ngModel)]="assetOwner"
+              placeholder="Example: Platform Team"
+              i18n-placeholder="Asset owner placeholder@@assetOwnerPlaceholder"
+            />
+
+          </div>
+
+
+          <!-- TAGS -->
+          <div class="field">
+
+            <label
+              for="asset-tags"
+              i18n="Asset tags label@@assetTagsLabel"
+            >
+              Tags
+            </label>
+
+            <input
+              id="asset-tags"
+              name="assetTags"
+              type="text"
+              [(ngModel)]="assetTags"
+              placeholder="Production, Cloud, Server"
+              i18n-placeholder="Asset tags placeholder@@assetTagsPlaceholder"
+            />
+
+          </div>
+
+
+          <!-- FORM ACTIONS -->
+          <div class="actions">
+
+            <button
+              class="button button--primary"
+              type="submit"
+            >
+
+              @if (editingAssetId === null) {
+
+                <span
+                  i18n="Create asset button@@assetCreateButton"
+                >
+                  Create Asset
+                </span>
+
+              } @else {
+
+                <span
+                  i18n="Save asset changes button@@assetSaveChangesButton"
+                >
+                  Save Changes
+                </span>
+
+              }
+
+            </button>
+
+
+            <button
+              class="button button--secondary"
+              type="button"
+              (click)="resetForm()"
+              i18n="Cancel asset form button@@assetCancelButton"
+            >
+              Cancel
+            </button>
+
+          </div>
+
+        </form>
+
+
+        <!-- SUCCESS MESSAGE -->
+        @if (formSuccess()) {
+
+          <p
+            class="feedback feedback--success"
+            role="status"
           >
-            Delete
-          </button>
+            {{ formSuccess() }}
+          </p>
+
+        }
+
+
+        <!-- ERROR MESSAGE -->
+        @if (formError()) {
+
+          <p
+            class="feedback feedback--deleted"
+            role="alert"
+          >
+            {{ formError() }}
+          </p>
+
+        }
+
+      </article>
+
+    </section>
+
+
+    <!-- ===================================================
+         EXISTING ASSETS
+         =================================================== -->
+    <section>
+
+      <article class="demo-card">
+
+
+        <!-- LIST HEADER -->
+        <header class="demo-card__header">
+
+          <div>
+
+            <p
+              class="demo-card__label"
+              i18n="Database section label@@assetDatabaseLabel"
+            >
+              Database
+            </p>
+
+            <h2
+              i18n="Existing assets title@@existingAssetsTitle"
+            >
+              Existing Assets
+            </h2>
+
+          </div>
+
 
           <button
             class="button button--secondary"
             type="button"
-            (click)="cancelProduct()"
-            i18n="Cancel button@@cancelButton"
+            (click)="loadAssets()"
+            i18n="Refresh assets button@@assetRefreshButton"
           >
-            Cancel
+            Refresh
           </button>
-        </div>
 
-        @if (feedback() === 'saved') {
+        </header>
+
+
+        <p
+          class="demo-card__description"
+          i18n="Existing assets description@@existingAssetsDescription"
+        >
+          Assets loaded from the deployed Asset Management API.
+        </p>
+
+
+        <!-- LOADING -->
+        @if (assetsLoading()) {
+
           <p
-            class="feedback feedback--success"
-            role="status"
-            i18n="Product saved feedback@@productSavedMessage"
+            i18n="Loading assets message@@assetsLoadingMessage"
           >
-            Product saved successfully.
+            Loading assets...
           </p>
+
         }
 
-        @if (feedback() === 'deleted') {
+
+        <!-- LOAD ERROR -->
+        @if (assetsError()) {
+
           <p
             class="feedback feedback--deleted"
-            role="status"
-            i18n="Product deleted feedback@@productDeletedMessage"
+            role="alert"
           >
-            Product deleted successfully.
+            {{ assetsError() }}
           </p>
+
         }
+
+
+        <!-- EMPTY DATABASE -->
+        @if (
+          !assetsLoading() &&
+          !assetsError() &&
+          assets().length === 0
+        ) {
+
+          <p
+            i18n="No assets message@@noAssetsMessage"
+          >
+            No assets found.
+          </p>
+
+        }
+
+
+        <!-- =================================================
+             ASSET CARDS
+             ================================================= -->
+        @if (
+          !assetsLoading() &&
+          !assetsError() &&
+          assets().length > 0
+        ) {
+
+          <div class="assets-grid">
+
+
+            @for (asset of assets(); track asset.id) {
+
+              <article class="asset-card">
+
+
+                <!-- ASSET HEADER -->
+                <div class="asset-card__header">
+
+                  <div>
+
+                    <h3>
+                      {{ asset.name }}
+                    </h3>
+
+                    <span class="asset-reference">
+                      {{ asset.reference }}
+                    </span>
+
+                  </div>
+
+
+                  <span
+                    class="asset-status"
+                    [class.asset-status--active]="
+                      asset.status === 'Active'
+                    "
+                  >
+                    {{ asset.status }}
+                  </span>
+
+                </div>
+
+
+                <!-- ASSET DETAILS -->
+                <div class="asset-card__details">
+
+
+                  <!-- OWNER -->
+                  <div>
+
+                    <span
+                      class="asset-card__label"
+                      i18n="Asset owner card label@@assetCardOwnerLabel"
+                    >
+                      Owner
+                    </span>
+
+                    <strong>
+                      {{ asset.owner ?? 'None' }}
+                    </strong>
+
+                  </div>
+
+
+                  <!-- TAGS -->
+                  <div>
+
+                    <span
+                      class="asset-card__label"
+                      i18n="Asset tags card label@@assetCardTagsLabel"
+                    >
+                      Tags
+                    </span>
+
+
+                    <div class="asset-tags">
+
+                      @if (asset.tags.length === 0) {
+
+                        <span
+                          class="asset-tag"
+                          i18n="No value label@@noneLabel"
+                        >
+                          None
+                        </span>
+
+                      } @else {
+
+                        @for (
+                          tag of asset.tags;
+                          track tag.id
+                        ) {
+
+                          <span class="asset-tag">
+                            {{ tag.name }}
+                          </span>
+
+                        }
+
+                      }
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+                <!-- CRUD ACTIONS -->
+                <div class="asset-card__actions">
+
+                  <button
+                    class="button button--secondary"
+                    type="button"
+                    (click)="startEdit(asset)"
+                    i18n="Edit asset button@@assetEditButton"
+                  >
+                    Edit
+                  </button>
+
+
+                  <button
+                    class="button button--danger"
+                    type="button"
+                    (click)="deleteAsset(asset)"
+                    i18n="Delete asset button@@assetDeleteButton"
+                  >
+                    Delete
+                  </button>
+
+                </div>
+
+              </article>
+
+            }
+
+          </div>
+
+        }
+
       </article>
+
     </section>
+
+
+    <!-- ===================================================
+         PDF REPORT
+         =================================================== -->
+    <section class="report-section">
+
+      <article class="report-card">
+
+
+        <div class="report-card__content">
+
+          <div class="report-card__icon">
+            PDF
+          </div>
+
+
+          <div>
+
+            <p
+              class="report-card__label"
+              i18n="Reporting section label@@reportingLabel"
+            >
+              Reporting
+            </p>
+
+            <h2
+              i18n="Generate Asset report title@@generateAssetReportTitle"
+            >
+              Generate Asset Report
+            </h2>
+
+            <p
+              class="report-card__description"
+              i18n="Generate report description@@generateAssetReportDescription"
+            >
+              Export the current assets as a multilingual PDF report.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="report-card__actions">
+
+          <span class="report-language">
+            {{ currentLocale.toUpperCase() }}
+          </span>
+
+
+          <button
+            class="button button--primary"
+            type="button"
+            (click)="generateReport()"
+            [disabled]="reportLoading()"
+          >
+
+            @if (reportLoading()) {
+
+              <span
+                i18n="Generating report button@@reportGeneratingButton"
+              >
+                Generating...
+              </span>
+
+            } @else {
+
+              <span
+                i18n="Generate PDF button@@reportGenerateButton"
+              >
+                Generate PDF
+              </span>
+
+            }
+
+          </button>
+
+        </div>
+
+
+        @if (reportError()) {
+
+          <p
+            class="feedback feedback--deleted report-card__error"
+            role="alert"
+          >
+            {{ reportError() }}
+          </p>
+
+        }
+
+      </article>
+
+    </section>
+
   </main>
 
+
+  <!-- =====================================================
+       FOOTER
+       ===================================================== -->
   <footer class="footer">
-    <p i18n="Application footer@@applicationFooter">
+
+    <p
+      i18n="Application footer@@applicationFooter"
+    >
       Built with Angular i18n and XLIFF.
     </p>
+
   </footer>
+
 </div>

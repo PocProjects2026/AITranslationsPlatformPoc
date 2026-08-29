@@ -1,19 +1,77 @@
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
+import { vi } from 'vitest';
 
 import { App, getLocalizedPath } from './app';
+import { AssetService } from './services/asset.service';
 
 describe('App', () => {
+  const assetServiceMock = {
+    getAssets: vi.fn(() =>
+      of([
+        {
+          id: 1,
+          name: 'Test Server',
+          reference: 'TEST-001',
+          status: 'Active',
+          owner: 'Platform Team',
+          tags: [
+            {
+              id: 1,
+              name: 'Test',
+            },
+          ],
+        },
+      ]),
+    ),
+
+    createAsset: vi.fn(() =>
+      of({
+        id: 2,
+        name: 'New Server',
+        reference: 'NEW-001',
+        status: 'Active',
+        owner: 'Platform Team',
+        tags: [],
+      }),
+    ),
+
+    updateAsset: vi.fn(() =>
+      of({
+        id: 1,
+        name: 'Updated Server',
+        reference: 'TEST-001',
+        status: 'Active',
+        owner: 'Platform Team',
+        tags: [],
+      }),
+    ),
+
+    deleteAsset: vi.fn(() => of(undefined)),
+
+    generateReport: vi.fn(() =>
+      of(new Blob(['pdf'], { type: 'application/pdf' })),
+    ),
+  };
+
   beforeEach(async () => {
+    vi.clearAllMocks();
+
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [
+        {
+          provide: AssetService,
+          useValue: assetServiceMock,
+        },
+      ],
     }).compileComponents();
   });
 
   it('should create the application', () => {
     const fixture = TestBed.createComponent(App);
-    const component = fixture.componentInstance;
 
-    expect(component).toBeTruthy();
+    expect(fixture.componentInstance).toBeTruthy();
   });
 
   it('should render the main localized interface content', () => {
@@ -22,6 +80,7 @@ describe('App', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+
     const heading = compiled.querySelector('h1');
     const versionMessage = compiled.querySelector('.version-message');
 
@@ -34,21 +93,26 @@ describe('App', () => {
     );
   });
 
-  it('should render a representative label and placeholder', () => {
+  it('should render the asset name label and placeholder', () => {
     const fixture = TestBed.createComponent(App);
 
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+
     const label = compiled.querySelector(
-      'label[for="product-name"]',
+      'label[for="asset-name"]',
     ) as HTMLLabelElement | null;
+
     const input = compiled.querySelector(
-      '#product-name',
+      '#asset-name',
     ) as HTMLInputElement | null;
 
-    expect(normalizeText(label?.textContent)).toBe('Product name');
-    expect(input?.placeholder).toBe('Enter a product name');
+    expect(normalizeText(label?.textContent)).toBe('Asset name');
+
+    expect(input?.placeholder).toBe(
+      'Example: Web Server',
+    );
   });
 
   it('should provide English, French and German language options', () => {
@@ -57,13 +121,16 @@ describe('App', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+
     const select = compiled.querySelector(
       '#application-language',
     ) as HTMLSelectElement | null;
 
     expect(select).not.toBeNull();
 
-    const options = Array.from(select?.options ?? []).map((option) => ({
+    const options = Array.from(
+      select?.options ?? [],
+    ).map((option) => ({
       value: option.value,
       label: normalizeText(option.textContent),
     }));
@@ -92,54 +159,68 @@ describe('App', () => {
     expect(getLocalizedPath('de')).toBe('/de/');
   });
 
-  it('should display a success message after saving a product', () => {
+  it('should load assets from the AssetService', () => {
     const fixture = TestBed.createComponent(App);
 
     fixture.detectChanges();
 
+    expect(assetServiceMock.getAssets).toHaveBeenCalled();
+
     const compiled = fixture.nativeElement as HTMLElement;
-    const saveButton = compiled.querySelector(
-      '.button--primary',
-    ) as HTMLButtonElement | null;
 
-    expect(saveButton).not.toBeNull();
+    expect(compiled.textContent).toContain(
+      'Test Server',
+    );
 
-    saveButton?.click();
-    fixture.detectChanges();
+    expect(compiled.textContent).toContain(
+      'TEST-001',
+    );
 
-    const feedback = compiled.querySelector('.feedback--success');
-
-    expect(normalizeText(feedback?.textContent)).toBe(
-      'Product saved successfully.',
+    expect(compiled.textContent).toContain(
+      'Platform Team',
     );
   });
 
-  it('should display a deletion message after deleting a product', () => {
+  it('should render edit and delete actions for an asset', () => {
     const fixture = TestBed.createComponent(App);
 
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const deleteButton = compiled.querySelector(
-      '.button--danger',
-    ) as HTMLButtonElement | null;
 
-    expect(deleteButton).not.toBeNull();
+    const buttons = Array.from(
+      compiled.querySelectorAll('button'),
+    ).map((button) =>
+      normalizeText(button.textContent),
+    );
 
-    deleteButton?.click();
+    expect(buttons).toContain('Edit');
+    expect(buttons).toContain('Delete');
+  });
+
+  it('should render the PDF report generation section', () => {
+    const fixture = TestBed.createComponent(App);
+
     fixture.detectChanges();
 
-    const feedback = compiled.querySelector('.feedback--deleted');
+    const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(normalizeText(feedback?.textContent)).toBe(
-      'Product deleted successfully.',
+    expect(compiled.textContent).toContain(
+      'Generate Asset Report',
+    );
+
+    expect(compiled.textContent).toContain(
+      'Generate PDF',
     );
   });
 });
 
 /**
- * Removes indentation, line breaks and repeated spaces from rendered text.
+ * Removes indentation, line breaks and repeated spaces
+ * from rendered text.
  */
-function normalizeText(value: string | null | undefined): string {
+function normalizeText(
+  value: string | null | undefined,
+): string {
   return value?.replace(/\s+/g, ' ').trim() ?? '';
 }

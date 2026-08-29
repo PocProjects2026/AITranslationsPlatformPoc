@@ -18,11 +18,12 @@ on:
         type: string
 
       cloudflare_branch:
-        description: "Cloudflare Pages branch"
+        description: "Cloudflare Pages deployment branch"
         required: true
-        default: "develop"
+        default: "preview"
         type: choice
         options:
+          - preview
           - develop
           - main
 
@@ -116,19 +117,55 @@ jobs:
             cloudflare_branch="${MANUAL_BRANCH}"
           fi
 
-          case "${source_branch}" in
-            develop|main)
-              ;;
-            *)
-              echo "::error::Deployment is only allowed from develop or main."
-              exit 1
-              ;;
-          esac
+          
+          if [ "${EVENT_NAME}" = "workflow_run" ]; then
 
-          if [ "${cloudflare_branch}" != "${source_branch}" ]; then
-            echo "::error::Cloudflare branch must match the CI source branch."
-            exit 1
+            case "${source_branch}" in
+              develop|main)
+                ;;
+              *)
+                echo "::error::Automatic deployment is only allowed from develop or main."
+                exit 1
+                ;;
+            esac
+
+            if [ "${cloudflare_branch}" != "${source_branch}" ]; then
+              echo "::error::Cloudflare branch must match the source branch."
+              exit 1
+            fi
+
+          else
+
+            case "${source_branch}" in
+              develop)
+                if [ "${cloudflare_branch}" != "develop" ]; then
+                  echo "::error::Develop CI runs must deploy to the develop branch."
+                  exit 1
+                fi
+                ;;
+
+              main)
+                if [ "${cloudflare_branch}" != "main" ]; then
+                  echo "::error::Main CI runs must deploy to the main branch."
+                  exit 1
+                fi
+                ;;
+
+              feature/*)
+                if [ "${cloudflare_branch}" != "preview" ]; then
+                  echo "::error::Feature branches may only deploy to the preview branch."
+                  exit 1
+                fi
+                ;;
+
+              *)
+                echo "::error::Unsupported source branch: ${source_branch}"
+                exit 1
+                ;;
+            esac
+
           fi
+          
 
           if [ -z "${source_sha}" ]; then
             echo "::error::Missing source commit SHA."
