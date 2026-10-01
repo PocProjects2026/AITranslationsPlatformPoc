@@ -1,0 +1,12 @@
+.appdata/
+.docker-config/
+.git/
+.packages/
+.vs/
+.vscode/
+**/bin/
+**/obj/
+TestResults/
+artifacts/
+tests/
+InventoryService.sln
