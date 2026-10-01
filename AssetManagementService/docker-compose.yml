@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: asset-management-postgres
+
+    environment:
+      POSTGRES_DB: asset_management
+      POSTGRES_USER: asset_user
+      POSTGRES_PASSWORD: asset_password
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

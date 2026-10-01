@@ -1,0 +1,10 @@
+{
+  "inventory.generated": "Generated",
+  "inventory.item": "Item",
+  "inventory.itemCount": "item(s)",
+  "inventory.quantity": "Quantity",
+  "inventory.report": "Report",
+  "inventory.sku": "SKU",
+  "inventory.title": "Inventory summary",
+  "inventory.warehouse": "Warehouse"
+}

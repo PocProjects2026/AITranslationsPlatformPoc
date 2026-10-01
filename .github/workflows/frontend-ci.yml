@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - develop
+      - develop-stage
       - main
     paths:
       - "FrontendApp/**"
@@ -13,6 +14,7 @@ on:
   push:
     branches:
       - develop
+      - develop-stage
       - main
       - "feature/**"
     paths:

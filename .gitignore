@@ -1,3 +1,17 @@
 # Repository-wide local files
 .DS_Store
 Thumbs.db
+
+# IDE-specific state
+.vs/
+.vscode/
+**/.vs/
+**/.vscode/
+
+# python local files
+AssetManagementService/.venv/
+AssetManagementService/.pytest_cache/
+AssetManagementService/**/__pycache__/
+AssetManagementService/**/*.pyc
+AssetManagementService/generated-reports/
+AssetManagementService/data/*.db
